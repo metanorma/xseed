@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="647" height="319" viewBox="0 0 647 319">
+  <style>.xsd-symbol {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.xsd-symbol.symbol-hover .symbol-shape {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 5px rgba(0,0,0,0.3));
+}
+
+.symbol-shape {
+  stroke-width: 1;
+  transition: stroke-width 0.2s, filter 0.2s;
+}
+
+.type-link {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.type-link:hover {
+  fill: #0000CC;
+}
+
+.collapse-button {
+  cursor: pointer;
+}
+
+.collapse-button:hover circle {
+  fill: #F0F0F0;
+}
+
+.child-group {
+  display: block;
+}
+
+.menu-button {
+  cursor: pointer;
+}
+
+.menu-button:hover .menu-dot {
+  fill: #333333;
+}
+
+.special-char {
+  font-weight: bold;
+}
+
+/* Shadow for depth effect */
+.shadow {
+  fill: #ccccd8;
+  stroke: none;
+}
+
+/* Connection circle styles */
+.connection-input {
+  fill: #4CAF50;
+  stroke: #388E3C;
+  stroke-width: 1;
+}
+
+.connection-output {
+  fill: #2196F3;
+  stroke: #1976D2;
+  stroke-width: 1;
+}
+
+/* Compositor internal line */
+.compositor-line {
+  stroke: #000;
+  stroke-width: 1;
+  fill: none;
+}
+
+/* Element styles - XSDVI light yellow */
+.xsd-element .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Complex Type styles - XSDVI light yellow */
+.xsd-complex-type .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Simple Type styles - XSDVI light yellow */
+.xsd-simple-type .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Compositor styles (sequence, choice, all) - XSDVI light blue */
+.xsd-sequence .symbol-shape,
+.xsd-choice .symbol-shape,
+.xsd-all .symbol-shape {
+  fill: #E7EBF3;
+  stroke: #666677;
+}
+
+/* Group styles */
+.xsd-group .symbol-shape {
+  fill: #E7EBF3;
+  stroke: #666677;
+}
+
+/* Attribute styles - XSDVI light yellow */
+.xsd-attribute .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Attribute Group styles */
+.xsd-attribute-group .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Restriction styles */
+.xsd-restriction .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Extension styles */
+.xsd-extension .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Union styles */
+.xsd-union .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* List styles */
+.xsd-list .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Any styles */
+.xsd-any .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* AnyAttribute styles */
+.xsd-any-attribute .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Identity constraint styles */
+.xsd-key .symbol-shape,
+.xsd-unique .symbol-shape,
+.xsd-keyref .symbol-shape {
+  fill: #E7EBF3;
+  stroke: #666677;
+}
+
+/* Selector and Field styles */
+.xsd-selector .symbol-shape,
+.xsd-field .symbol-shape {
+  fill: #E7EBF3;
+  stroke: #666677;
+}
+
+/* Attribute styling based on required/optional */
+.attribute-required {
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+.attribute-optional {
+  stroke-width: 1;
+  stroke-dasharray: 4,2;
+}
+
+/* Text styles matching XSDVI */
+.symbol-name {
+  fill: #000;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+.symbol-type {
+  fill: #000;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.small {
+  font-size: 10px;
+}
+
+/* Connector styles - XSDVI gray */
+.connector {
+  stroke: #666666;
+  stroke-width: 1;
+  fill: none;
+}
+
+/* XSDVI Button styles */
+.button rect {
+  fill: #FFFFFF;
+  stroke: #000000;
+  stroke-width: 1;
+}
+
+.button line {
+  stroke: #000000;
+  stroke-width: 1;
+}
+
+/* Connection line styles */
+.connection {
+  stroke: #666666;
+  stroke-width: 1;
+  fill: none;
+}
+
+/* Box class for XSDVI compatibility */
+.box {
+  cursor: pointer;
+}
+</style>
+  <script>function toggleChildren(symbolId) {
+  var childGroup = document.getElementById(symbolId + '_children');
+  if (childGroup) {
+    var isHidden = childGroup.style.display === 'none';
+    childGroup.style.display = isHidden ? 'block' : 'none';
+
+    // Update button text
+    var button = document.querySelector('#' + symbolId + ' .collapse-button text');
+    if (button) {
+      button.textContent = isHidden ? '-' : '+';
+    }
+  }
+}
+
+// Add mouseover effects for alternate display
+document.addEventListener('DOMContentLoaded', function() {
+  var symbols = document.querySelectorAll('.xsd-symbol');
+  symbols.forEach(function(symbol) {
+    symbol.addEventListener('mouseenter', function() {
+      this.classList.add('symbol-hover');
+    });
+    symbol.addEventListener('mouseleave', function() {
+      this.classList.remove('symbol-hover');
+    });
+  });
+});
+</script>
+  <defs>
+    <symbol class="button" id="plus">
+      <rect x="1" y="1" width="10" height="10"/>
+      <line x1="3" y1="6" x2="9" y2="6"/>
+      <line x1="6" y1="3" x2="6" y2="9"/>
+    </symbol>
+    <symbol class="button" id="minus">
+      <rect x="1" y="1" width="10" height="10"/>
+      <line x1="3" y1="6" x2="9" y2="6"/>
+    </symbol>
+  </defs>
+  <line class="connection" x1="163" y1="96" x2="494" y2="50" stroke="#666666" stroke-width="1"/>
+  <line class="connection" x1="163" y1="96" x2="494" y2="121" stroke="#666666" stroke-width="1"/>
+  <line class="connection" x1="163" y1="96" x2="494" y2="192" stroke="#666666" stroke-width="1"/>
+  <line class="connection" x1="-35" y1="-144" x2="-35" y2="-40" stroke="#666666" stroke-width="1"/>
+  <path class="connection" d="M-35,-40 Q-35,15 0,23" fill="none" stroke="#666666" stroke-width="1"/>
+  <g id="sym_2260" class="xsd-symbol xsd-element" data-name="Schema" transform="translate(20,50)">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000102c8c398&gt;</text>
+    <text class="symbol-name" x="5" y="27">Schema</text>
+    <use x="273" y="17" xlink:href="#minus" id="ssym_2260" onclick="show('sym_2260')"/>
+  </g>
+  <g id="sym_2280" class="xsd-symbol xsd-element" data-name="PersonType" transform="translate(351,50)">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000102c8c398&gt;</text>
+    <text class="symbol-name" x="5" y="27">PersonType</text>
+  </g>
+  <g id="sym_2300" class="xsd-symbol xsd-element" data-name="ContactType" transform="translate(351,121)">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000102c8c398&gt;</text>
+    <text class="symbol-name" x="5" y="27">ContactType</text>
+  </g>
+  <g id="sym_2320" class="xsd-symbol xsd-element" data-name="person" transform="translate(351,192)">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000102c8c398&gt;</text>
+    <text class="symbol-name" x="5" y="27">person</text>
+    <a xlink:href="#sym_type_tns:PersonType">
+      <text class="symbol-type type-link" x="5" y="41" fill="#0000EE" style="text-decoration: underline; cursor: pointer;">type: tns:PersonType</text>
+    </a>
+  </g>
+  <g id="sym_2340" class="xsd-symbol xsd-element" data-name="contact" transform="translate(351,263)">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000102c8c398&gt;</text>
+    <text class="symbol-name" x="5" y="27">contact</text>
+    <a xlink:href="#sym_type_tns:ContactType">
+      <text class="symbol-type type-link" x="5" y="41" fill="#0000EE" style="text-decoration: underline; cursor: pointer;">type: tns:ContactType</text>
+    </a>
+  </g>
+</svg>

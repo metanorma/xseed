@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/person"
+           xmlns:tns="http://example.com/person"
+           elementFormDefault="qualified"
+           version="1.0.0">
+
+  <xs:annotation>
+    <xs:documentation>
+      Example schema defining person and contact information.
+      This schema demonstrates various XSD features including
+      complex types, sequences, choices, and attributes.
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Simple Types -->
+  <xs:simpleType name="EmailType">
+    <xs:annotation>
+      <xs:documentation>Email address with pattern validation</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[^@]+@[^@]+\.[^@]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="PhoneType">
+    <xs:annotation>
+      <xs:documentation>Phone number in international format</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\+[0-9]{1,3}-[0-9]{1,14}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="StatusType">
+    <xs:annotation>
+      <xs:documentation>Person status enumeration</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="active"/>
+      <xs:enumeration value="inactive"/>
+      <xs:enumeration value="pending"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Complex Types -->
+  <xs:complexType name="AddressType">
+    <xs:annotation>
+      <xs:documentation>Postal address information</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="street" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>Street address</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="city" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>City name</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="state" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>State or province (optional)</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="postalCode" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>Postal or ZIP code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="country" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>Country name</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="type" type="xs:string" use="optional" default="home">
+      <xs:annotation>
+        <xs:documentation>Address type (home, work, other)</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="ContactInfoType">
+    <xs:annotation>
+      <xs:documentation>Contact information with choice of email or phone</xs:documentation>
+    </xs:annotation>
+    <xs:choice>
+      <xs:element name="email" type="tns:EmailType">
+        <xs:annotation>
+          <xs:documentation>Email address</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="phone" type="tns:PhoneType">
+        <xs:annotation>
+          <xs:documentation>Phone number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:choice>
+    <xs:attribute name="preferred" type="xs:boolean" default="false">
+      <xs:annotation>
+        <xs:documentation>Whether this is the preferred contact method</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="PersonType">
+    <xs:annotation>
+      <xs:documentation>A person with name, contact info, and address</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="firstName" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>Person's first name</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="lastName" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>Person's last name</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="age" type="xs:positiveInteger" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Person's age</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="contact" type="tns:ContactInfoType"
+                  minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>Contact information (email or phone)</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="address" type="tns:AddressType"
+                  minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>Postal addresses</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for the person</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="status" type="tns:StatusType" default="active">
+      <xs:annotation>
+        <xs:documentation>Person's current status</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Global Elements -->
+  <xs:element name="person" type="tns:PersonType">
+    <xs:annotation>
+      <xs:documentation>Root element representing a person</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="people">
+    <xs:annotation>
+      <xs:documentation>Collection of person elements</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tns:person" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

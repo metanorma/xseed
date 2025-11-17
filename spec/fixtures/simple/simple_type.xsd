@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://example.com/simple"
+           targetNamespace="http://example.com/simple"
+           elementFormDefault="qualified">
+
+  <xs:simpleType name="StatusType">
+    <xs:annotation>
+      <xs:documentation>Status enumeration type</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="active"/>
+      <xs:enumeration value="inactive"/>
+      <xs:enumeration value="pending"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="AgeType">
+    <xs:annotation>
+      <xs:documentation>Age restriction type</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="150"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="EmailType">
+    <xs:annotation>
+      <xs:documentation>Email pattern type</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[^@]+@[^@]+\.[^@]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="CodeType">
+    <xs:annotation>
+      <xs:documentation>Code pattern type</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z]{3}-[0-9]{4}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="status" type="tns:StatusType">
+    <xs:annotation>
+      <xs:documentation>Status element</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="age" type="tns:AgeType">
+    <xs:annotation>
+      <xs:documentation>Age element</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="email" type="tns:EmailType">
+    <xs:annotation>
+      <xs:documentation>Email element</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="code" type="tns:CodeType">
+    <xs:annotation>
+      <xs:documentation>Code element</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+</xs:schema>

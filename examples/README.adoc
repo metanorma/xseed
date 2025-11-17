@@ -1,0 +1,334 @@
+= Xseed Examples
+
+This directory contains comprehensive examples demonstrating various features and usage patterns of the Xseed gem.
+
+== Quick Start
+
+[source,shell]
+----
+# Run simple examples
+ruby examples/simple_generation.rb
+
+# Run advanced examples
+ruby examples/advanced_usage.rb
+----
+
+== Example Files
+
+=== Simple Generation (`simple_generation.rb`)
+
+Demonstrates basic SVG generation workflows:
+
+* **Example 1**: Generate SVG to stdout
+* **Example 2**: Generate SVG to file
+* **Example 3**: Error handling patterns
+* **Example 4**: Schema inspection before generation
+* **Example 5**: Batch processing multiple schemas
+
+[source,shell]
+----
+ruby examples/simple_generation.rb
+----
+
+=== Advanced Usage (`advanced_usage.rb`)
+
+Demonstrates advanced features and patterns:
+
+* **Example 1**: Parser introspection and metadata extraction
+* **Example 2**: Conditional generation based on schema analysis
+* **Example 3**: Custom error handling and logging
+* **Example 4**: Performance monitoring and profiling
+* **Example 5**: Integration with other tools
+
+[source,shell]
+----
+ruby examples/advanced_usage.rb
+----
+
+== Example Schemas
+
+=== person.xsd
+
+A comprehensive example schema demonstrating:
+
+* **Simple types** with restrictions and enumerations
+* **Complex types** with sequences and choices
+* **Nested structures** (Address within Person)
+* **Attributes** (required and optional)
+* **Documentation** annotations throughout
+* **Namespaces** and target namespace usage
+
+This schema serves as a realistic example for testing and demonstration purposes.
+
+== Output
+
+Generated SVG files are saved to `examples/output/`. This directory is created automatically when examples are run.
+
+== Common Patterns
+
+=== Basic Generation
+
+[source,ruby]
+----
+require "xseed"
+
+generator = Xseed::Svg::SvgGenerator.new("schema.xsd")
+svg_content = generator.generate
+----
+
+=== Generate to File
+
+[source,ruby]
+----
+require "xseed"
+
+generator = Xseed::Svg::SvgGenerator.new("schema.xsd")
+generator.generate_file("diagram.svg")
+----
+
+=== Inspect Schema First
+
+[source,ruby]
+----
+require "xseed"
+
+parser = Xseed::Parser::XsdParser.new("schema.xsd")
+puts "Elements: #{parser.elements.size}"
+puts "Types: #{parser.types.size}"
+
+# Then generate
+generator = Xseed::Svg::SvgGenerator.new("schema.xsd")
+generator.generate_file("diagram.svg")
+----
+
+=== Error Handling
+
+[source,ruby]
+----
+require "xseed"
+
+begin
+  generator = Xseed::Svg::SvgGenerator.new("schema.xsd")
+  generator.generate_file("output.svg")
+rescue Xseed::ParserError => e
+  puts "Parser error: #{e.message}"
+rescue Xseed::Svg::GenerationError => e
+  puts "Generation error: #{e.message}"
+end
+----
+
+=== Batch Processing
+
+[source,ruby]
+----
+require "xseed"
+
+Dir.glob("schemas/*.xsd").each do |xsd_file|
+  basename = File.basename(xsd_file, ".xsd")
+  output = "output/#{basename}-diagram.svg"
+
+  generator = Xseed::Svg::SvgGenerator.new(xsd_file)
+  generator.generate_file(output)
+  puts "Generated: #{output}"
+end
+----
+
+== Integration Examples
+
+=== Rake Task
+
+[source,ruby]
+----
+# Rakefile
+require "xseed"
+
+desc "Generate SVG diagrams from XSD schemas"
+task :diagrams do
+  Dir.glob("schemas/*.xsd").each do |xsd|
+    svg = xsd.sub("schemas/", "docs/diagrams/").sub(".xsd", ".svg")
+    FileUtils.mkdir_p(File.dirname(svg))
+
+    generator = Xseed::Svg::SvgGenerator.new(xsd)
+    generator.generate_file(svg)
+    puts "Generated: #{svg}"
+  end
+end
+----
+
+=== Makefile
+
+[source,makefile]
+----
+# Makefile
+SCHEMAS = $(wildcard schemas/*.xsd)
+DIAGRAMS = $(SCHEMAS:schemas/%.xsd=docs/diagrams/%.svg)
+
+all: diagrams
+
+diagrams: $(DIAGRAMS)
+
+docs/diagrams/%.svg: schemas/%.xsd
+	@mkdir -p $(dir $@)
+	@xseed svg $< -o $@
+	@echo "Generated: $@"
+
+clean:
+	rm -rf docs/diagrams/*.svg
+
+.PHONY: all diagrams clean
+----
+
+=== CI/CD Pipeline
+
+[source,yaml]
+----
+# .github/workflows/diagrams.yml
+name: Generate Diagrams
+
+on:
+  push:
+    paths:
+      - 'schemas/**.xsd'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Generate SVG diagrams
+        run: |
+          bundle exec rake diagrams
+
+      - name: Commit diagrams
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add docs/diagrams/*.svg
+          git commit -m "docs: regenerate SVG diagrams" || true
+          git push
+----
+
+== Customization Examples
+
+=== Custom Output Directory
+
+[source,ruby]
+----
+require "xseed"
+require "fileutils"
+
+output_dir = "custom/output/path"
+FileUtils.mkdir_p(output_dir)
+
+generator = Xseed::Svg::SvgGenerator.new("schema.xsd")
+output_file = File.join(output_dir, "diagram.svg")
+generator.generate_file(output_file)
+----
+
+=== Conditional Generation
+
+[source,ruby]
+----
+require "xseed"
+
+xsd_file = "schema.xsd"
+parser = Xseed::Parser::XsdParser.new(xsd_file)
+
+# Only generate if schema is complex enough
+if parser.types.size > 5
+  generator = Xseed::Svg::SvgGenerator.new(xsd_file)
+  generator.generate_file("diagram.svg")
+  puts "Generated diagram for complex schema"
+else
+  puts "Schema too simple, skipping diagram"
+end
+----
+
+=== Performance Monitoring
+
+[source,ruby]
+----
+require "xseed"
+require "benchmark"
+
+xsd_file = "schema.xsd"
+
+elapsed = Benchmark.realtime do
+  generator = Xseed::Svg::SvgGenerator.new(xsd_file)
+  generator.generate_file("diagram.svg")
+end
+
+puts "Generation took: #{(elapsed * 1000).round(2)}ms"
+----
+
+== Troubleshooting
+
+=== Missing Dependencies
+
+If examples fail with "cannot load such file" errors:
+
+[source,shell]
+----
+# Install dependencies
+bundle install
+
+# Run examples from project root
+cd /path/to/xseed
+ruby examples/simple_generation.rb
+----
+
+=== Permission Errors
+
+If you get permission errors when writing files:
+
+[source,shell]
+----
+# Make output directory writable
+chmod 755 examples/output
+
+# Or run with appropriate permissions
+----
+
+=== Schema Not Found
+
+Ensure schema files exist in the expected locations:
+
+[source,shell]
+----
+# Check schema files
+ls examples/schemas/
+
+# Use absolute paths if needed
+ruby -e 'puts File.expand_path("examples/schemas/person.xsd")'
+----
+
+== Additional Resources
+
+* link:../README.adoc[Main README]
+* link:../docs/SVG_GENERATION.adoc[SVG Generation Guide]
+* link:../docs/ARCHITECTURE.adoc[Technical Architecture]
+* https://github.com/metanorma/xseed[GitHub Repository]
+
+== Contributing Examples
+
+To contribute new examples:
+
+1. Create a descriptive Ruby file in `examples/`
+2. Include clear comments explaining the example
+3. Add error handling
+4. Update this README
+5. Test the example works standalone
+
+Examples should:
+
+* Be self-contained
+* Include error handling
+* Use the person.xsd schema when possible
+* Output to `examples/output/`
+* Include helpful console output

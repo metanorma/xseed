@@ -1,0 +1,554 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="svg" width="647" height="319" viewBox="0 0 647 319" onload="loadSVG()">
+  <script type="text/ecmascript"><![CDATA[  var efBoxes = [];
+  var eSvg = null;
+
+////////// loadSVG()
+  function loadSVG() {
+    efBoxes = getElementsByClassName('box', document.getElementsByTagName('g'));
+    eSvg = document.getElementById('svg');
+    expandAll();
+  }
+
+////////// getElementsByClassName(string, nodeList)
+  function getElementsByClassName(sClass, nlNodes) {
+    var elements = [];
+    for (var i=0; i<nlNodes.length; i++) {
+      if(nlNodes.item(i).nodeType==1 && sClass==nlNodes.item(i).getAttribute('class')) {
+        elements.push(nlNodes.item(i));
+      }
+    }
+    return elements;
+  }
+
+////////// show(string)
+  function show(sId) {
+    var useElement = document.getElementById('s'+sId);
+    var moveNext = false;
+    var eBoxLast;
+    var maxX = 500;
+
+    if (notPlus(useElement)) {
+      eBoxLast = document.getElementById(sId);
+      setPlus(useElement);
+      for (var i=0; i<efBoxes.length; i++) {
+        var eBox = efBoxes[i];
+        if (moveNext) {
+          move(eBoxLast, eBox);
+        }
+        else if (isDescendant(sId, eBox.id)) {
+          eBox.setAttribute('visibility', 'hidden');
+        }
+        else if (isHigherBranch(sId, eBox.id)) {
+          move(eBoxLast, eBox);
+          moveNext = true;
+        }
+        if (eBox.getAttribute('visibility') != 'hidden') {
+          eBoxLast = eBox;
+          x = xTrans(eBox);
+          if (x > maxX) maxX = x;
+        }
+      }
+    }
+
+    else {
+      setMinus(useElement);
+      var skipDescendantsOf;
+      for (var i=0; i<efBoxes.length; i++) {
+        var eBox = efBoxes[i];
+        if (moveNext) {
+          move(eBoxLast, eBox);
+        }
+        else if (isDescendant(sId, eBox.id) && (!skipDescendantsOf || !isDescendant(skipDescendantsOf.id, eBox.id))) {
+          eBox.setAttribute('visibility', 'visible');
+          move(eBoxLast, eBox);
+          if (nextClosed(eBox)) skipDescendantsOf = eBox;
+        }
+        else if (isHigherBranch(sId, eBox.id)) {
+          move(eBoxLast, eBox);
+          moveNext = true;
+        }
+        if (eBox.getAttribute('visibility') != 'hidden') {
+          eBoxLast = eBox;
+          x = xTrans(eBox);
+          if (x > maxX) maxX = x;
+        }
+      }
+    }
+    setHeight(yTrans(eBoxLast)+71);
+    setWidth(maxX+360);
+  }
+
+////////// collapseAll()
+  function collapseAll() {
+    for (var i=0; i<efBoxes.length; i++) {
+      var eBox = efBoxes[i];
+      var useElement = document.getElementById('s'+eBox.id);
+      if (useElement) setPlus(useElement);
+      if (eBox.id != '_1') eBox.setAttribute('visibility', 'hidden');
+    }
+    setHeight(400);
+    setWidth(500);
+  }
+
+////////// expandAll()
+  function expandAll() {
+    var eBoxLast;
+    var maxX = 0;
+    for (var i=0; i<efBoxes.length; i++) {
+      var eBox = efBoxes[i];
+      var useElement = document.getElementById('s'+eBox.id);
+      if (useElement) setMinus(useElement);
+      move(eBoxLast, eBox);
+      eBox.setAttribute('visibility', 'visible');
+      eBoxLast = eBox;
+      var x = xTrans(eBox);
+      if (x > maxX) maxX = x;
+    }
+    setHeight(yTrans(eBoxLast)+71);
+    setWidth(maxX+360);
+  }
+
+////////// makeVisible(string)
+  function makeVisible(sId) {
+    var childNodes = document.getElementById(sId).childNodes;
+    var hidden = getElementsByClassName('hidden', childNodes);
+    var visible = getElementsByClassName('visible', childNodes);
+    inheritVisibility(hidden);
+    hiddenVisibility(visible);
+  }
+
+////////// makeHidden(string)
+  function makeHidden(sId) {
+    var childNodes = document.getElementById(sId).childNodes;
+    var hidden = getElementsByClassName('hidden', childNodes);
+    var visible = getElementsByClassName('visible', childNodes);
+    inheritVisibility(visible);
+    hiddenVisibility(hidden);
+  }
+
+////////// inheritVisibility(element[])
+  function inheritVisibility(efElements) {
+    for (var i=0; i<efElements.length; i++) {
+      efElements[i].setAttribute('visibility', 'inherit');
+    }
+  }
+
+////////// hiddenVisibility(element[])
+  function hiddenVisibility(efElements) {
+    for (var i=0; i<efElements.length; i++) {
+      efElements[i].setAttribute('visibility', 'hidden');
+    }
+  }
+
+////////// nextClosed(element)
+  function nextClosed(eBox) {
+    var useElement = document.getElementById('s'+eBox.id);
+    return (useElement && !notPlus(useElement));
+  }
+
+////////// isHigherBranch(string, string)
+  function isHigherBranch(sSerialLower, sSerialHigher) {
+    var sLower = sSerialLower.split('_');
+    var sHigher = sSerialHigher.split('_');
+    for (var i=0; i<sLower.length; i++) {
+      if (Number(sHigher[i]) > Number(sLower[i])) return true;
+      else if (Number(sHigher[i]) < Number(sLower[i])) return false;
+    }
+    return false;
+  }
+
+////////// isOnHigherLevel(element, element)
+  function isOnHigherLevel(eBoxLower, eBoxHigher) {
+    var sLower = eBoxLower.id.split('_');
+    var sHigher = eBoxHigher.id.split('_');
+    for (var i=0; i<sLower.length; i++) {
+      if (Number(sHigher[i]) > Number(sLower[i])) return true;
+    }
+    return false;
+  }
+
+////////// isDescendant(string, string)
+  function isDescendant(sSerialAsc, sSerialDesc) {
+    return (sSerialDesc.length > sSerialAsc.length && sSerialDesc.indexOf(sSerialAsc) === 0);
+  }
+
+////////// getParent(element)
+  function getParent(eBox) {
+    var serial = eBox.id.substring(0, eBox.id.lastIndexOf('_'));
+    return document.getElementById(serial);
+  }
+
+////////// move(element, element)
+  function move(eBoxLast, eBox) {
+    if (!eBoxLast) return;
+    if (isOnHigherLevel(eBoxLast, eBox)) {
+      var attDescHeight = eBoxLast.getAttribute('data-desc-height-rest');
+      var attDescX = Number(eBoxLast.getAttribute('data-desc-x'));
+      var attX = xTrans(eBox);
+      var descHeight = Number(attDescHeight);
+      var heightAddon = 0;
+
+      var currWidth = eBox.getElementsByClassName("shadow")[0];
+      if (currWidth) {
+        currWidth = Number(currWidth.getAttribute("width"));
+      } else {
+        currWidth = 0;
+      }
+      if(descHeight && ((attDescX >= attX && attDescX < attX + currWidth) || (attX < attDescX))) heightAddon = descHeight;
+
+      setYTrans(eBox, yTrans(eBoxLast)+71+heightAddon);
+      var parent = getParent(eBox);
+      var line = document.getElementById('p'+eBox.id);
+      if (!parent || !line) return;
+      line.setAttribute('y1', String(yTrans(parent)-yTrans(eBox)+23));
+    }
+    else {
+      setYTrans(eBox, yTrans(eBoxLast));
+    }
+  }
+
+////////// notPlus(element)
+  function notPlus(eUseElement) {
+    return (eUseElement.getAttributeNS('http://www.w3.org/1999/xlink', 'href') != '#plus');
+  }
+
+////////// setPlus(element)
+  function setPlus(eUseElement) {
+    eUseElement.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#plus');
+  }
+
+////////// setMinus(element)
+  function setMinus(eUseElement) {
+    eUseElement.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#minus');
+  }
+
+////////// setHeight(number)
+  function setHeight(nHeight) {
+    eSvg.setAttribute('height', nHeight);
+  }
+
+////////// setWidth(number)
+  function setWidth(nWidth) {
+    eSvg.setAttribute('width', nWidth);
+  }
+
+////////// xyTrans(element)
+  function xTrans(eBox) {
+    var transform = eBox.getAttribute('transform');
+    var x = Number(transform.substring(10, Number(transform.length)-1).split(',')[0]);
+    if(!x) x = 0;
+    return x;
+  }
+
+////////// yTrans(element)
+  function yTrans(eBox) {
+    var transform = eBox.getAttribute('transform');
+    var y = Number(transform.substring(10, Number(transform.length)-1).split(',')[1]);
+    if(!y) y = 0;
+    return y;
+  }
+
+////////// setYTrans(element, number)
+  function setYTrans(eBox, nValue) {
+    eBox.setAttribute('transform', 'translate('+xTrans(eBox)+','+nValue+')');
+  }
+]]></script>
+  <style>.xsd-symbol {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.xsd-symbol.symbol-hover .symbol-shape {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 5px rgba(0,0,0,0.3));
+}
+
+.symbol-shape {
+  stroke-width: 1;
+  transition: stroke-width 0.2s, filter 0.2s;
+}
+
+.type-link {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.type-link:hover {
+  fill: #0000CC;
+}
+
+.collapse-button {
+  cursor: pointer;
+}
+
+.collapse-button:hover circle {
+  fill: #F0F0F0;
+}
+
+.child-group {
+  display: block;
+}
+
+.menu-button {
+  cursor: pointer;
+}
+
+.menu-button:hover .menu-dot {
+  fill: #333333;
+}
+
+.special-char {
+  font-weight: bold;
+}
+
+/* Shadow for depth effect */
+.shadow {
+  fill: #ccccd8;
+  stroke: none;
+}
+
+/* Connection circle styles */
+.connection-input {
+  fill: #4CAF50;
+  stroke: #388E3C;
+  stroke-width: 1;
+}
+
+.connection-output {
+  fill: #2196F3;
+  stroke: #1976D2;
+  stroke-width: 1;
+}
+
+/* Compositor internal line */
+.compositor-line {
+  stroke: #000;
+  stroke-width: 1;
+  fill: none;
+}
+
+/* Element styles - XSDVI light yellow */
+.xsd-element .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Complex Type styles - XSDVI light yellow */
+.xsd-complex-type .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Simple Type styles - XSDVI light yellow */
+.xsd-simple-type .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Compositor styles (sequence, choice, all) - XSDVI light blue */
+.xsd-sequence .symbol-shape,
+.xsd-choice .symbol-shape,
+.xsd-all .symbol-shape {
+  fill: #E7EBF3;
+  stroke: #666677;
+}
+
+/* Group styles */
+.xsd-group .symbol-shape {
+  fill: #E7EBF3;
+  stroke: #666677;
+}
+
+/* Attribute styles - XSDVI light yellow */
+.xsd-attribute .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Attribute Group styles */
+.xsd-attribute-group .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Restriction styles */
+.xsd-restriction .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Extension styles */
+.xsd-extension .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Union styles */
+.xsd-union .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* List styles */
+.xsd-list .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Any styles */
+.xsd-any .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* AnyAttribute styles */
+.xsd-any-attribute .symbol-shape {
+  fill: #FFFFBB;
+  stroke: #776633;
+}
+
+/* Identity constraint styles */
+.xsd-key .symbol-shape,
+.xsd-unique .symbol-shape,
+.xsd-keyref .symbol-shape {
+  fill: #E7EBF3;
+  stroke: #666677;
+}
+
+/* Selector and Field styles */
+.xsd-selector .symbol-shape,
+.xsd-field .symbol-shape {
+  fill: #E7EBF3;
+  stroke: #666677;
+}
+
+/* Attribute styling based on required/optional */
+.attribute-required {
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+.attribute-optional {
+  stroke-width: 1;
+  stroke-dasharray: 4,2;
+}
+
+/* Text styles matching XSDVI */
+.symbol-name {
+  fill: #000;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+.symbol-type {
+  fill: #000;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.small {
+  font-size: 10px;
+}
+
+/* Connector styles - XSDVI gray */
+.connector {
+  stroke: #666666;
+  stroke-width: 1;
+  fill: none;
+}
+
+/* XSDVI Button styles */
+.button rect {
+  fill: #FFFFFF;
+  stroke: #000000;
+  stroke-width: 1;
+  cursor: pointer;
+}
+
+.button line {
+  stroke: #000000;
+  stroke-width: 1;
+}
+
+.button {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+/* Connection line styles */
+.connection {
+  stroke: #666666;
+  stroke-width: 1;
+  fill: none;
+}
+
+/* Box class for XSDVI compatibility */
+.box {
+  cursor: pointer;
+}
+</style>
+  <defs>
+    <symbol class="button" id="plus">
+      <rect x="1" y="1" width="10" height="10"/>
+      <line x1="3" y1="6" x2="9" y2="6"/>
+      <line x1="6" y1="3" x2="6" y2="9"/>
+    </symbol>
+    <symbol class="button" id="minus">
+      <rect x="1" y="1" width="10" height="10"/>
+      <line x1="3" y1="6" x2="9" y2="6"/>
+    </symbol>
+  </defs>
+  <rect class="button" x="300" y="10" width="20" height="20" onclick="collapseAll()"/>
+  <line x1="303" y1="20" x2="317" y2="20"/>
+  <text x="330" y="20">collapse all</text>
+  <rect class="button" x="400" y="10" width="20" height="20" onclick="expandAll()"/>
+  <line x1="403" y1="20" x2="417" y2="20"/>
+  <line x1="410" y1="13" x2="410" y2="27"/>
+  <text x="430" y="20">expand all</text>
+  <line class="connection" x1="163" y1="96" x2="494" y2="50" stroke="#666666" stroke-width="1"/>
+  <line class="connection" x1="163" y1="96" x2="494" y2="121" stroke="#666666" stroke-width="1"/>
+  <line class="connection" x1="163" y1="96" x2="494" y2="192" stroke="#666666" stroke-width="1"/>
+  <line class="connection" id="p_1_4" x1="-35" y1="-144" x2="-35" y2="-40" stroke="#666666" stroke-width="1"/>
+  <path class="connection" d="M-35,-40 Q-35,15 0,23" fill="none" stroke="#666666" stroke-width="1"/>
+  <g id="_1" class="box" transform="translate(20,50)" data-desc-height="0" data-desc-height-rest="0" data-desc-x="20">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000104b9c508&gt;</text>
+    <text class="symbol-name" x="5" y="27">Schema</text>
+    <use x="273" y="17" xlink:href="#minus" id="s_1" onclick="show('_1')"/>
+  </g>
+  <g id="_1_1" class="box" transform="translate(351,50)" data-desc-height="0" data-desc-height-rest="0" data-desc-x="351">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000104b9c508&gt;</text>
+    <text class="symbol-name" x="5" y="27">PersonType</text>
+  </g>
+  <g id="_1_2" class="box" transform="translate(351,121)" data-desc-height="0" data-desc-height-rest="0" data-desc-x="351">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000104b9c508&gt;</text>
+    <text class="symbol-name" x="5" y="27">ContactType</text>
+  </g>
+  <g id="_1_3" class="box" transform="translate(351,192)" data-desc-height="0" data-desc-height-rest="0" data-desc-x="351">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000104b9c508&gt;</text>
+    <text class="symbol-name" x="5" y="27">person</text>
+    <a xlink:href="#sym_type_tns:PersonType">
+      <text class="symbol-type type-link" x="5" y="41" fill="#0000EE" style="text-decoration: underline; cursor: pointer;">type: tns:PersonType</text>
+    </a>
+  </g>
+  <g id="_1_4" class="box" transform="translate(351,263)" data-desc-height="0" data-desc-height-rest="0" data-desc-x="351">
+    <rect class="shadow" x="3" y="3" width="286" height="46" rx="5" ry="5"/>
+    <rect class="symbol-shape shape-element" x="0" y="0" width="286" height="46" rx="5" ry="5"/>
+    <text x="5" y="13" class="namespace-text" font-size="9" fill="#999999">#&lt;Nokogiri::XML::Namespace:0x0000000104b9c508&gt;</text>
+    <text class="symbol-name" x="5" y="27">contact</text>
+    <a xlink:href="#sym_type_tns:ContactType">
+      <text class="symbol-type type-link" x="5" y="41" fill="#0000EE" style="text-decoration: underline; cursor: pointer;">type: tns:ContactType</text>
+    </a>
+  </g>
+</svg>

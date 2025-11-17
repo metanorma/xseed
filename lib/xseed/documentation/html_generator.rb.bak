@@ -1,0 +1,723 @@
+# frozen_string_literal: true
+
+require "nokogiri"
+require_relative "config"
+require_relative "constants"
+require_relative "utils/references"
+require_relative "utils/namespaces"
+require_relative "utils/helpers"
+require_relative "generators/properties_table_generator"
+require_relative "generators/hierarchy_table_generator"
+require_relative "generators/instance_sample_generator"
+require_relative "presentation/css_generator"
+require_relative "presentation/javascript_generator"
+require_relative "presentation/navigation_builder"
+require_relative "../parser/xsd_parser"
+
+module Xseed
+  module Documentation
+    # Main HTML documentation generator
+    # Integrates all content generators for complete schema documentation
+    class HtmlGenerator
+      include Utils::References
+      include Utils::Namespaces
+      include Utils::Helpers
+      include Constants
+
+      attr_reader :xsd_file, :config, :parser
+
+      # Initialize the HTML generator
+      #
+      # @param xsd_file [String] Path to XSD schema file
+      # @param config [Config] Configuration options (optional)
+      def initialize(xsd_file, config = Config.new)
+        @xsd_file = xsd_file
+        @config = config
+        @parser = Parser::XsdParser.new(xsd_file)
+      end
+
+      # Generate HTML documentation
+      #
+      # @return [String] Generated HTML content
+      def generate
+        builder = Nokogiri::HTML::Builder.new do |html|
+          html.html(lang: "en") do
+            generate_head(html)
+            html.body do
+              generate_body(html)
+              generate_navigation(html)
+            end
+          end
+        end
+        builder.to_html
+      end
+
+      # Generate HTML documentation and write to file
+      #
+      # @param output_path [String] Path to output HTML file
+      def generate_file(output_path)
+        html_content = generate
+        File.write(output_path, html_content)
+      end
+
+      private
+
+      # Generate HTML head section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_head(html)
+        html.head do
+          html.meta(charset: "UTF-8")
+          html.meta(name: "viewport",
+                    content: "width=device-width, initial-scale=1.0")
+          html.title(title)
+          generate_styles(html)
+          generate_scripts(html)
+        end
+      end
+
+      # Generate styles (inline or external)
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_styles(html)
+        css_gen = Presentation::CssGenerator.new(@config)
+
+        if css_gen.external_css_url
+          html.link(rel: "stylesheet", href: css_gen.external_css_url)
+        else
+          html.style do
+            html.text(css_gen.generate)
+          end
+        end
+      end
+
+      # Generate scripts (inline or external)
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_scripts(html)
+        js_gen = Presentation::JavascriptGenerator.new(@config)
+
+        # jQuery
+        html.script(src: js_gen.jquery_url, defer: true) {}
+
+        # Bootstrap JS (if enabled)
+        if js_gen.bootstrap_url
+          html.script(src: "#{js_gen.bootstrap_url}/js/bootstrap.min.js",
+                      defer: true) {}
+        end
+
+        # Custom JavaScript
+        html.script(defer: true) do
+          html.text(js_gen.generate)
+        end
+      end
+
+      # Generate navigation sidebar
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_navigation(html)
+        nav_builder = Presentation::NavigationBuilder.new(@parser, @config)
+        html << nav_builder.generate
+      end
+
+
+      # Generate HTML body content
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_body(html)
+        # Toggle button as direct child of body
+        html.div(id: "toggle") do
+          html.span "<"
+        end
+
+        html.main do
+          html.div(class: "title-section") do
+            html.h1 do
+              html.a(id: "top") {}
+              html.text title
+            end
+          end
+
+          # Schema-level information
+          generate_schema_info(html)
+
+          # Generate documentation for each component type
+          if @config.sort_by_component
+            generate_sorted_components(html)
+          else
+            generate_unsorted_components(html)
+          end
+
+          # Glossary section (if enabled)
+          generate_glossary(html) if @config.print_glossary
+        end
+      end
+
+      # Generate components in sorted order
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_sorted_components(html)
+        generate_elements_section(html) if parser.elements.any?
+        generate_complex_types_section(html) if parser.complex_types.any?
+        generate_simple_types_section(html) if parser.simple_types.any?
+        generate_groups_section(html) if parser.groups.any?
+        generate_attribute_groups_section(html) if parser.attribute_groups.any?
+      end
+
+      # Generate components in unsorted order
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_unsorted_components(html)
+        html.section(id: "SchemaComponents") do
+          html.h2 "Global Schema Components"
+
+          # Generate all components in order they appear
+          all_components = []
+          if parser.attribute_groups.any?
+            all_components.concat(parser.attribute_groups)
+          end
+          if parser.complex_types.any?
+            all_components.concat(parser.complex_types)
+          end
+          all_components.concat(parser.elements) if parser.elements.any?
+          all_components.concat(parser.groups) if parser.groups.any?
+          all_components.concat(parser.simple_types) if parser.simple_types.any?
+
+          all_components.each do |component|
+            component_type = get_component_type_label(component.name)
+            generate_component_section(html, component, component_type)
+          end
+        end
+      end
+
+      # Get component type label
+      #
+      # @param node_name [String] XML node name
+      # @return [String] Human-readable component type
+      def get_component_type_label(node_name)
+        case node_name
+        when "element"
+          "Element"
+        when "complexType"
+          "Complex Type"
+        when "simpleType"
+          "Simple Type"
+        when "group"
+          "Model Group"
+        when "attributeGroup"
+          "Attribute Group"
+        when "attribute"
+          "Attribute"
+        when "notation"
+          "Notation"
+        else
+          node_name
+        end
+      end
+
+      # Generate glossary section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_glossary(html)
+        html.section(id: "Glossary") do
+          html.h2 "Glossary"
+          html.p "XSD schema terms and definitions."
+          # TODO: Implement glossary generation
+        end
+      end
+
+      # Generate schema information section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_schema_info(html)
+        schema = parser.schema
+        return unless schema
+
+        html.section(id: "SectionSchemaProperties", class: "schema-info") do
+          html.h2 do
+            html.a(id: "SchemaProperties") {}
+            html.text "Schema Document Properties"
+          end
+
+          html.dl(class: "dl-horizontal") do
+            # Target Namespace
+            html.dt(class: "header") do
+              html.a(title: "Look up 'Target Namespace' in glossary",
+                     href: "#term_TargetNS") do
+                html.text "Target Namespace"
+              end
+            end
+            html.dd(class: "") do
+              if (target_ns = schema["targetNamespace"])
+                html.text target_ns
+              else
+                html.text "None"
+              end
+            end
+
+            # Element and Attribute Namespaces
+            html.dt(class: "header") { html.text "Element and Attribute Namespaces" }
+            html.dd(class: "") do
+              html.ul do
+                html.li do
+                  html.text "Global element and attribute declarations belong to this schema's target namespace."
+                end
+                html.li do
+                  html.text "By default, local element declarations have no namespace."
+                end
+                html.li do
+                  html.text "By default, local attribute declarations have no namespace."
+                end
+              end
+            end
+          end
+
+          # Declared Namespaces
+          generate_declared_namespaces(html, schema)
+
+          # Schema Component Representation
+          generate_schema_component_callout(html, schema)
+
+          html.div(style: "text-align: right; clear: both;") do
+            html.a(href: "#top", title: "Go to top of page") do
+              html.span(class: "glyphicon glyphicon-chevron-up") { html.text " " }
+            end
+          end
+          html.hr
+        end
+      end
+
+      # Generate declared namespaces section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      # @param schema [Nokogiri::XML::Element] Schema element
+      def generate_declared_namespaces(html, schema)
+        html.h4 "Declared Namespaces:"
+        html.dl(class: "dl-horizontal") do
+          html.dt(class: "header") { html.text "Prefix" }
+          html.dd(class: "header") { html.text "Namespace" }
+
+          # Extract namespace declarations
+          schema.namespace_definitions.each do |ns|
+            prefix = ns.prefix || "(default)"
+            html.dt(class: "") do
+              html.a(id: "ns_#{ns.prefix}") {} if ns.prefix
+              html.text prefix
+            end
+            html.dd(class: "") { html.text ns.href }
+          end
+        end
+      end
+
+      # Generate elements section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_elements_section(html)
+        html.section(id: "SectionSchemaElements") do
+          html.h2 do
+            html.a(id: "SchemaElements") {}
+            html.text "Elements"
+          end
+
+          parser.elements.each do |element|
+            generate_component_section(html, element, "Element")
+          end
+        end
+      end
+
+      # Generate complex types section (kept for backwards compatibility)
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_complex_types_section(html)
+        html.section(id: "SectionSchemaComplexTypes") do
+          html.h2 do
+            html.a(id: "SchemaComplexTypes") {}
+            html.text "Complex Types"
+          end
+
+          parser.complex_types.each do |type|
+            generate_component_section(html, type, "Complex Type")
+          end
+        end
+      end
+
+      # Generate simple types section (kept for backwards compatibility)
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_simple_types_section(html)
+        html.section(id: "SectionSchemaSimpleTypes") do
+          html.h2 do
+            html.a(id: "SchemaSimpleTypes") {}
+            html.text "Simple Types"
+          end
+
+          parser.simple_types.each do |type|
+            generate_component_section(html, type, "Simple Type")
+          end
+        end
+      end
+      # Generate groups section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_groups_section(html)
+        html.section(id: "SectionSchemaGroups") do
+          html.h2 do
+            html.a(id: "SchemaGroups") {}
+            html.text "Model Groups"
+          end
+
+          parser.groups.each do |group|
+            generate_component_section(html, group, "Model Group")
+      # Generate combined types section (complex and simple)
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_types_section(html)
+        html.section(id: "SectionSchemaTypes", class: "component-group") do
+          html.h2 do
+            html.a(id: "SchemaTypes") {}
+            html.text "Global Types"
+          end
+
+          # Complex types first
+          parser.complex_types.each do |type|
+            generate_component_div(html, type, "Complex Type")
+          end
+
+          # Then simple types
+          parser.simple_types.each do |type|
+            generate_component_div(html, type, "Simple Type")
+          end
+        end
+      end
+
+      # Generate combined groups and attribute groups section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_groups_and_attributes_section(html)
+        html.section(id: "SectionSchemaGroups", class: "component-group") do
+          html.h2 do
+            html.a(id: "SchemaGroups") {}
+            html.text "Global Groups and Attributes"
+          end
+
+          # Model groups
+          parser.groups.each do |group|
+            generate_component_div(html, group, "Model Group")
+          end
+
+          # Attribute groups
+          parser.attribute_groups.each do |group|
+            generate_component_div(html, group, "Attribute Group")
+          end
+        end
+      end
+
+      # Generate component as div (not section) within a grouped section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      # @param component [Nokogiri::XML::Element] Schema component
+      # @param component_type [String] Component type label
+      def generate_component_div(html, component, component_type)
+        component_name = component["name"] || component["ref"]
+        return unless component_name
+
+        component_id = generate_component_id(component_type, component_name)
+
+        html.div(id: component_id, class: "component") do
+          html.h3(class: "xs3p-subsection-heading") do
+            html.text "#{component_type}: "
+            html.strong component_name
+          end
+
+          # SVG diagram reference (if exists)
+          generate_svg_reference(html, component_name)
+
+          # Properties definition list (no heading)
+          props_gen = Generators::PropertiesTableGenerator.new(component,
+                                                               @config)
+          html << props_gen.generate
+
+          # Hierarchy table (if applicable)
+          hier_gen = Generators::HierarchyTableGenerator.new(
+            component,
+            @parser,
+            @config
+          )
+          hierarchy_html = hier_gen.generate
+          html << hierarchy_html if hierarchy_html
+
+          # Instance sample in callout block (skip for simple types and notations)
+          unless %w[simpleType notation].include?(component.name)
+            generate_instance_representation_callout(html, component)
+          end
+
+          # Schema component representation in callout block
+          generate_schema_component_callout(html, component)
+
+          # Back to top link and separator
+          html.div(style: "text-align: right; clear: both;") do
+            html.a(href: "#top", title: "Go to top of page") do
+              html.span(class: "glyphicon glyphicon-chevron-up") { html.text " " }
+            end
+          end
+          html.hr
+        end
+      end
+
+          end
+        end
+      end
+
+      # Generate attribute groups section
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_attribute_groups_section(html)
+        html.section(id: "SectionSchemaAttributeGroups") do
+          html.h2 do
+            html.a(id: "SchemaAttributeGroups") {}
+            html.text "Attribute Groups"
+          end
+
+          parser.attribute_groups.each do |group|
+            generate_component_section(html, group, "Attribute Group")
+          end
+        end
+      end
+
+      # Generate component section with all generators
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      # @param component [Nokogiri::XML::Element] Schema component
+      # @param component_type [String] Component type label
+      def generate_component_section(html, component, component_type)
+        component_name = component["name"] || component["ref"]
+        return unless component_name
+
+        component_id = generate_component_id(component_type, component_name)
+
+        html.section(id: component_id) do
+          html.h3(class: "xs3p-subsection-heading") do
+            html.text "#{component_type}: "
+            html.strong component_name
+          end
+
+        # SVG diagram reference (if exists)
+        generate_svg_reference(html, component_name)
+
+        # Properties definition list (no heading)
+        props_gen = Generators::PropertiesTableGenerator.new(component,
+                                                             @config)
+        html << props_gen.generate
+
+        # Hierarchy table (if applicable)
+        hier_gen = Generators::HierarchyTableGenerator.new(
+          component,
+          @parser,
+          @config
+        )
+        hierarchy_html = hier_gen.generate
+        html << hierarchy_html if hierarchy_html
+
+        # Instance sample in callout block (skip for simple types and notations)
+        unless %w[simpleType notation].include?(component.name)
+          generate_instance_representation_callout(html, component)
+        end
+
+        # Schema component representation in callout block
+        generate_schema_component_callout(html, component)
+
+          # Back to top link and separator
+          html.div(style: "text-align: right; clear: both;") do
+            html.a(href: "#top", title: "Go to top of page") do
+              html.span(class: "glyphicon glyphicon-chevron-up") { html.text " " }
+            end
+          end
+          html.hr
+        end
+      end
+
+      # Generate SVG diagram reference
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      # @param component_name [String] Component name
+      def generate_svg_reference(html, component_name)
+        return unless @config.print_diagrams
+
+        html.object(data: "diagrams/#{component_name}.svg",
+                    type: "image/svg+xml") {}
+      end
+
+      # Generate instance representation callout block
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      # @param component [Nokogiri::XML::Element] Schema component
+      def generate_instance_representation_callout(html, component)
+        html.div(class: "bs-callout bs-callout-info") do
+          html.h4 do
+            html.text "XML Instance Representation"
+            html.text " "
+            generate_help_popover(html, "instance")
+          end
+          sample_gen = Generators::InstanceSampleGenerator.new(
+            component,
+            @parser,
+            @config
+          )
+          html << sample_gen.generate
+        end
+      end
+
+      # Generate schema component representation callout block
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      # @param component [Nokogiri::XML::Element] Schema component
+      def generate_schema_component_callout(html, component)
+        html.div(class: "bs-callout bs-callout-info") do
+          html.h4 do
+            html.text "Schema Component Representation"
+            html.text " "
+            generate_help_popover(html, "schema")
+          end
+          html.pre(class: "codehilite") do
+            html << format_xsd_component(component)
+          end
+        end
+      end
+
+      # Generate help popover button
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      # @param type [String] Type of help ("instance" or "schema")
+      def generate_help_popover(html, type)
+        content = if type == "instance"
+                    instance_help_content
+                  else
+                    schema_help_content
+                  end
+
+        html.span(class: "xs3p-panel-help") do
+          html.button(type: "button",
+                      class: "btn btn-doc",
+                      "data-container": "body",
+                      "data-toggle": "popover",
+                      "data-placement": type == "instance" ? "right" : "left",
+                      "data-html": "true",
+                      "data-content": content) do
+            html.span(class: "glyphicon glyphicon-question-sign") { html.text " " }
+          end
+        end
+      end
+
+      # Format XSD component for display
+      #
+      # @param component [Nokogiri::XML::Element] Schema component
+      # @return [String] Formatted XSD
+      def format_xsd_component(component)
+        # Get the component's XML representation
+        xml = component.to_xml(indent: 3)
+
+        # Add syntax highlighting classes
+        xml.gsub!(/<(\/?)([\w:]+)([^>]*)>/) do
+          tag_open = Regexp.last_match(1)
+          tag_name = Regexp.last_match(2)
+          attributes = Regexp.last_match(3)
+
+          # Highlight tag names
+          highlighted = "<span class=\"nt\">&lt;#{tag_open}"
+          highlighted += "<a href=\"#ns_#{tag_name.split(':').first}\" " \
+                        "title=\"Find out namespace of '#{tag_name.split(':').first}' prefix\">" \
+                        "#{tag_name}</a>" if tag_name.include?(":")
+          highlighted += tag_name unless tag_name.include?(":")
+
+          # Highlight attributes
+          if attributes && !attributes.empty?
+            attributes.gsub!(/(\w+)="([^"]*)"/) do
+              attr_name = Regexp.last_match(1)
+              attr_value = Regexp.last_match(2)
+              " <span class=\"na\">#{attr_name}=</span>" \
+              "<span class=\"s\">\"#{attr_value}\"</span>"
+            end
+            highlighted += attributes
+          end
+
+          highlighted += "&gt;</span>"
+          highlighted
+        end
+
+        xml
+      end
+
+      # Help content for instance representation
+      #
+      # @return [String] HTML help content
+      def instance_help_content
+        "The XML Instance Representation table shows the schema component's content as an XML instance. " \
+        "&lt;ul&gt;" \
+        "&lt;li&gt;The minimum and maximum occurrence of elements and attributes are provided in square brackets, e.g. [0..1].&lt;/li&gt;" \
+        "&lt;li&gt;Model group information are shown in gray, e.g. Start Choice ... End Choice.&lt;/li&gt;" \
+        "&lt;li&gt;For type derivations, the elements and attributes that have been added to or changed from the base type's content are shown in &lt;strong&gt;bold&lt;/strong&gt;&lt;/li&gt;" \
+        "&lt;li&gt;If an element/attribute has a fixed value, the fixed value is shown in green.&lt;/li&gt;" \
+        "&lt;/ul&gt;"
+      end
+
+      # Help content for schema component
+      #
+      # @return [String] HTML help content
+      def schema_help_content
+        "The Schema Component Representation table below displays the underlying XML representation of the schema component. (Annotations are not shown.)"
+      end
+
+      # Generate component ID for anchor links
+      #
+      # @param component_type [String] Component type
+      # @param component_name [String] Component name
+      # @return [String] Component ID
+      def generate_component_id(component_type, component_name)
+        case component_type
+        when "Element"
+          "element-#{component_name}"
+        when "Complex Type"
+          "type-#{component_name}"
+        when "Simple Type"
+          "type-#{component_name}"
+        when "Model Group"
+          "group-#{component_name}"
+        when "Attribute Group"
+          "attributeGroup-#{component_name}"
+        else
+          "#{component_type.downcase.tr(' ', '-')}-#{component_name}"
+        end
+      end
+
+      # Get the title for the documentation
+      #
+      # @return [String] Documentation title
+      def title
+        return @config.title if @config.title
+
+        # Try to extract meaningful title from schema
+        # 1. First global element name (often the root element)
+        if parser.elements.any?
+          first_element = parser.elements.first
+          return first_element["name"] if first_element["name"]
+        end
+
+        # 2. Extract from target namespace
+        if parser.target_namespace
+          namespace_parts = parser.target_namespace.split('/')
+          last_part = namespace_parts.last
+          # Extract meaningful name from namespace (e.g., "unitsml" from
+          # "https://schema.unitsml.org/unitsml/1.0")
+          if last_part && last_part != ""
+            # Remove version numbers
+            name = last_part.gsub(/[-_]?v?\d+(\.\d+)*$/, '')
+            return name unless name.empty?
+          end
+        end
+
+        # 3. Fallback
+        "XML Schema Documentation"
+      end
+    end
+  end
+end
