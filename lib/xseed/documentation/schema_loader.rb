@@ -68,7 +68,7 @@ module Xseed
         Lutaml::Xsd.parse(
           content,
           location: location,
-          schema_mappings: mappings
+          schema_mappings: mappings,
         )
       rescue Nokogiri::XML::SyntaxError => e
         raise ParseError, "Invalid XML syntax: #{e.message}"
@@ -88,7 +88,7 @@ module Xseed
 
         # Check if root element is xs:schema or xsd:schema
         unless root.name == "schema" &&
-               root.namespace&.href&.include?("XMLSchema")
+            root.namespace&.href&.include?("XMLSchema")
           raise ParseError,
                 "Not a valid XSD schema: root element must be xs:schema"
         end

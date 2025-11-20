@@ -12,7 +12,7 @@ RSpec.describe Xseed::Documentation::Generators::HierarchyTableGenerator do
   describe "#initialize" do
     it "requires a component parameter" do
       parser = Xseed::Parser::XsdParser.new(
-        File.join(fixture_path, "simple/element_only.xsd")
+        File.join(fixture_path, "simple/element_only.xsd"),
       )
       expect { described_class.new(nil, parser, config) }
         .to raise_error(ArgumentError)
@@ -20,7 +20,7 @@ RSpec.describe Xseed::Documentation::Generators::HierarchyTableGenerator do
 
     it "requires a parser parameter" do
       parser = Xseed::Parser::XsdParser.new(
-        File.join(fixture_path, "simple/element_only.xsd")
+        File.join(fixture_path, "simple/element_only.xsd"),
       )
       element = parser.elements.first
       expect { described_class.new(element, nil, config) }
@@ -29,7 +29,7 @@ RSpec.describe Xseed::Documentation::Generators::HierarchyTableGenerator do
 
     it "accepts all required parameters" do
       parser = Xseed::Parser::XsdParser.new(
-        File.join(fixture_path, "simple/element_only.xsd")
+        File.join(fixture_path, "simple/element_only.xsd"),
       )
       element = parser.elements.first
       generator = described_class.new(element, parser, config)
@@ -41,7 +41,7 @@ RSpec.describe Xseed::Documentation::Generators::HierarchyTableGenerator do
     context "with element that has no hierarchy" do
       let(:parser) do
         Xseed::Parser::XsdParser.new(
-          File.join(fixture_path, "simple/element_only.xsd")
+          File.join(fixture_path, "simple/element_only.xsd"),
         )
       end
       let(:element) { parser.elements.first }
@@ -220,7 +220,7 @@ RSpec.describe Xseed::Documentation::Generators::HierarchyTableGenerator do
 
       it "returns false when element has no substitution group" do
         parser = Xseed::Parser::XsdParser.new(
-          File.join(fixture_path, "simple/element_only.xsd")
+          File.join(fixture_path, "simple/element_only.xsd"),
         )
         element = parser.elements.first
         generator = described_class.new(element, parser, config)

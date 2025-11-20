@@ -43,8 +43,8 @@ RSpec.describe Xseed::Documentation::Utils::Namespaces do
         "Schema",
         namespaces: {
           "xs" => "http://www.w3.org/2001/XMLSchema",
-          "tns" => "http://example.com/target"
-        }
+          "tns" => "http://example.com/target",
+        },
       )
     end
 
@@ -98,8 +98,8 @@ RSpec.describe Xseed::Documentation::Utils::Namespaces do
         "Schema",
         namespaces: {
           "xs" => "http://www.w3.org/2001/XMLSchema",
-          "tns" => "http://example.com/target"
-        }
+          "tns" => "http://example.com/target",
+        },
       )
     end
 
@@ -136,9 +136,9 @@ RSpec.describe Xseed::Documentation::Utils::Namespaces do
         namespaces: {
           "xs" => "http://www.w3.org/2001/XMLSchema",
           "tns" => "http://example.com/target",
-          "ext" => "http://example.com/extension"
+          "ext" => "http://example.com/extension",
         },
-        target_namespace: "http://example.com/target"
+        target_namespace: "http://example.com/target",
       )
     end
 
@@ -192,7 +192,7 @@ RSpec.describe Xseed::Documentation::Utils::Namespaces do
     it "formats xmlns declaration" do
       result = instance.format_namespace_declaration(
         "xs",
-        "http://www.w3.org/2001/XMLSchema"
+        "http://www.w3.org/2001/XMLSchema",
       )
       expect(result).to include("xmlns:xs")
       expect(result).to include("http://www.w3.org/2001/XMLSchema")
@@ -201,7 +201,7 @@ RSpec.describe Xseed::Documentation::Utils::Namespaces do
     it "formats default namespace declaration" do
       result = instance.format_namespace_declaration(
         "",
-        "http://example.com/default"
+        "http://example.com/default",
       )
       expect(result).to include("xmlns=")
       expect(result).to include("http://example.com/default")
@@ -212,7 +212,7 @@ RSpec.describe Xseed::Documentation::Utils::Namespaces do
       it "handles nil prefix" do
         result = instance.format_namespace_declaration(
           nil,
-          "http://example.com"
+          "http://example.com",
         )
         expect(result).to include("xmlns=")
       end

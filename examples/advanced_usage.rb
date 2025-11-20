@@ -104,7 +104,7 @@ def example_custom_error_handling
   test_files = [
     File.join(__dir__, "schemas", "person.xsd"),
     File.join(__dir__, "schemas", "nonexistent.xsd"),
-    File.join(__dir__, "invalid.txt")
+    File.join(__dir__, "invalid.txt"),
   ]
 
   results = { success: [], failed: [] }

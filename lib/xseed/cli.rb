@@ -253,7 +253,7 @@ module Xseed
       say ""
 
       total_components = parser.elements.size + parser.types.size +
-                         parser.groups.size + parser.attribute_groups.size
+        parser.groups.size + parser.attribute_groups.size
       say "  Total Components: #{total_components}"
       say ""
 

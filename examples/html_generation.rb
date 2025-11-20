@@ -106,7 +106,7 @@ begin
   # Define schemas to process
   base_dir = File.expand_path("..", __dir__)
   schemas = [
-    File.join(base_dir, "spec/fixtures/simple/element_only.xsd")
+    File.join(base_dir, "spec/fixtures/simple/element_only.xsd"),
   ]
 
   # Process each schema

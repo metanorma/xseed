@@ -107,7 +107,7 @@ module Xseed
       def documentation
         doc_node = schema.at_xpath(
           "xs:annotation/xs:documentation",
-          "xs" => XSD_NS
+          "xs" => XSD_NS,
         )
         return nil unless doc_node
 
@@ -121,7 +121,7 @@ module Xseed
       def element_documentation(element_name)
         element = schema.at_xpath(
           "xs:element[@name='#{element_name}']",
-          "xs" => XSD_NS
+          "xs" => XSD_NS,
         )
         return nil unless element
 
@@ -136,7 +136,7 @@ module Xseed
         type_node = schema.at_xpath(
           "xs:complexType[@name='#{type_name}'] | " \
           "xs:simpleType[@name='#{type_name}']",
-          "xs" => XSD_NS
+          "xs" => XSD_NS,
         )
         return nil unless type_node
 
@@ -181,7 +181,7 @@ module Xseed
       def extract_documentation(node)
         doc_node = node.at_xpath(
           "xs:annotation/xs:documentation",
-          "xs" => XSD_NS
+          "xs" => XSD_NS,
         )
         return nil unless doc_node
 

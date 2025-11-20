@@ -23,7 +23,7 @@ module Xseed
           "notation" => "nota-",
           "simpleType" => "stype-",
           "key" => "key-",
-          "unique" => "key-"
+          "unique" => "key-",
         }.freeze
 
         # Returns a human-readable description for a schema component type

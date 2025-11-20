@@ -106,7 +106,7 @@ RSpec.describe Xseed::Models::ElementDeclaration do
         type: "string",
         min_occurs: 0,
         max_occurs: "1",
-        documentation: "Test element"
+        documentation: "Test element",
       )
       yaml = element.to_yaml
       expect(yaml).to include("name: Test")

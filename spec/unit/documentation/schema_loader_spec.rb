@@ -35,13 +35,13 @@ RSpec.describe Xseed::Documentation::SchemaLoader do
 
     it "handles schema location mappings" do
       mappings = [
-        { from: "common.xsd", to: "/local/common.xsd" }
+        { from: "common.xsd", to: "/local/common.xsd" },
       ]
 
       schema = described_class.parse(
         xsd_content,
         location: File.dirname(fixture_path),
-        schema_mappings: mappings
+        schema_mappings: mappings,
       )
 
       expect(schema).to be_a(Lutaml::Xsd::Schema)

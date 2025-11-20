@@ -126,7 +126,7 @@ module Xseed
           {
             namespace: get_ref_namespace(ref, schema),
             prefix: get_ref_prefix(ref),
-            local_name: get_ref_name(ref)
+            local_name: get_ref_name(ref),
           }
         end
       end

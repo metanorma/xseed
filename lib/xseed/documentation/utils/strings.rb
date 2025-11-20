@@ -56,8 +56,8 @@ module Xseed
           return "" if text.nil? || text.empty?
 
           text.gsub(/[\t\n\r]+/, " ")
-              .gsub(/\s+/, " ")
-              .strip
+            .gsub(/\s+/, " ")
+            .strip
         end
 
         # Splits a string by whitespace into an array

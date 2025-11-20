@@ -84,7 +84,7 @@ puts "=" * 60
 
 xsd_file = File.join(
   __dir__,
-  "../spec/fixtures/real_world/unitsml-v1.0.xsd"
+  "../spec/fixtures/real_world/unitsml-v1.0.xsd",
 )
 parser = Xseed::Parser::XsdParser.new(xsd_file)
 

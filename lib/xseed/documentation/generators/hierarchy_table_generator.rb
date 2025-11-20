@@ -346,14 +346,14 @@ module Xseed
           # Check simpleContent
           if (extension = component.at_xpath(
             "xsd:simpleContent/xsd:extension",
-            "xsd" => XSD_NS
+            "xsd" => XSD_NS,
           ))
             return extension["base"]
           end
 
           if (restriction = component.at_xpath(
             "xsd:simpleContent/xsd:restriction",
-            "xsd" => XSD_NS
+            "xsd" => XSD_NS,
           ))
             return restriction["base"]
           end
@@ -361,14 +361,14 @@ module Xseed
           # Check complexContent
           if (extension = component.at_xpath(
             "xsd:complexContent/xsd:extension",
-            "xsd" => XSD_NS
+            "xsd" => XSD_NS,
           ))
             return extension["base"]
           end
 
           if (restriction = component.at_xpath(
             "xsd:complexContent/xsd:restriction",
-            "xsd" => XSD_NS
+            "xsd" => XSD_NS,
           ))
             return restriction["base"]
           end
@@ -382,12 +382,12 @@ module Xseed
         def derivation_method
           if component.at_xpath(
             "xsd:simpleContent/xsd:extension | xsd:complexContent/xsd:extension",
-            "xsd" => XSD_NS
+            "xsd" => XSD_NS,
           )
             "extension"
           elsif component.at_xpath(
             "xsd:simpleContent/xsd:restriction | xsd:complexContent/xsd:restriction",
-            "xsd" => XSD_NS
+            "xsd" => XSD_NS,
           )
             "restriction"
           else
@@ -402,7 +402,7 @@ module Xseed
         def get_derivation_method(type)
           if type.at_xpath(
             "xsd:complexContent/xsd:extension | xsd:simpleContent/xsd:extension",
-            "xsd" => XSD_NS
+            "xsd" => XSD_NS,
           )
             "extension"
           else
@@ -457,7 +457,7 @@ module Xseed
           while current_type
             restriction = current_type.at_xpath(
               "xsd:restriction",
-              "xsd" => XSD_NS
+              "xsd" => XSD_NS,
             )
             break unless restriction
 
@@ -484,7 +484,7 @@ module Xseed
 
           parser.complex_types.select do |ct|
             base_ref = self.class.new(ct, parser, config)
-                           .send(:extract_base_type_ref)
+              .send(:extract_base_type_ref)
             base_ref && strip_namespace_prefix(base_ref) == type_name
           end
         end
@@ -501,7 +501,7 @@ module Xseed
             next if ct == type
 
             base_ref = self.class.new(ct, parser, config)
-                           .send(:extract_base_type_ref)
+              .send(:extract_base_type_ref)
             base_ref && strip_namespace_prefix(base_ref) == type_name
           end
         end

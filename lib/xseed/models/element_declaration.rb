@@ -85,7 +85,7 @@ module Xseed
           substitution_group: node["substitutionGroup"],
           default_value: node["default"],
           fixed_value: node["fixed"],
-          documentation: extract_documentation(node)
+          documentation: extract_documentation(node),
         )
       end
 
@@ -133,7 +133,7 @@ module Xseed
       private_class_method def self.extract_documentation(node)
         doc_node = node.at_xpath(
           "xs:annotation/xs:documentation",
-          "xs" => "http://www.w3.org/2001/XMLSchema"
+          "xs" => "http://www.w3.org/2001/XMLSchema",
         )
         return nil unless doc_node
 

@@ -60,7 +60,7 @@ RSpec.describe "Content Generation Integration" do
 
         # xs3p samples have HTML markup, not pure XML
         # Check for XML-like structure (element names, not full XML parsing)
-        expect(sample).to match(/\w/)  # Has content
+        expect(sample).to match(/\w/) # Has content
       end
     end
 
@@ -433,11 +433,15 @@ RSpec.describe "Content Generation Integration" do
       doc = Nokogiri::HTML(html)
 
       # Should have SchemaProperties section (case-insensitive ID check)
-      schema_props = doc.css("section").find { |s| s["id"]&.match?(/schema.*properties/i) }
+      schema_props = doc.css("section").find do |s|
+        s["id"]&.match?(/schema.*properties/i)
+      end
       expect(schema_props).not_to be_nil
 
       # Should have element sections with proper IDs
-      element_sections = doc.css("section").select { |s| s["id"]&.match?(/element/i) }
+      element_sections = doc.css("section").select do |s|
+        s["id"]&.match?(/element/i)
+      end
       expect(element_sections).not_to be_empty
     end
   end

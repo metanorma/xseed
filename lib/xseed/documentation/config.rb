@@ -93,7 +93,7 @@ module Xseed
           base_url: @base_url,
           external_css_url: @external_css_url,
           jquery_url: @jquery_url,
-          bootstrap_url: @bootstrap_url
+          bootstrap_url: @bootstrap_url,
         }
       end
     end

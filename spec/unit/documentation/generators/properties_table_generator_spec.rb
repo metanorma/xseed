@@ -16,7 +16,7 @@ RSpec.describe Xseed::Documentation::Generators::PropertiesTableGenerator do
 
     it "accepts a config parameter" do
       parser = Xseed::Parser::XsdParser.new(
-        File.join(fixture_path, "simple/element_only.xsd")
+        File.join(fixture_path, "simple/element_only.xsd"),
       )
       element = parser.elements.first
       generator = described_class.new(element, config)
@@ -28,7 +28,7 @@ RSpec.describe Xseed::Documentation::Generators::PropertiesTableGenerator do
     context "with element component" do
       let(:parser) do
         Xseed::Parser::XsdParser.new(
-          File.join(fixture_path, "simple/element_only.xsd")
+          File.join(fixture_path, "simple/element_only.xsd"),
         )
       end
       let(:element) { parser.elements.first }
@@ -70,7 +70,7 @@ RSpec.describe Xseed::Documentation::Generators::PropertiesTableGenerator do
     context "with complex type component" do
       let(:parser) do
         Xseed::Parser::XsdParser.new(
-          File.join(fixture_path, "simple/complex_type.xsd")
+          File.join(fixture_path, "simple/complex_type.xsd"),
         )
       end
       let(:complex_type) { parser.complex_types.first }
@@ -101,7 +101,7 @@ RSpec.describe Xseed::Documentation::Generators::PropertiesTableGenerator do
     context "with simple type component" do
       let(:parser) do
         Xseed::Parser::XsdParser.new(
-          File.join(fixture_path, "simple/simple_type.xsd")
+          File.join(fixture_path, "simple/simple_type.xsd"),
         )
       end
       let(:simple_type) { parser.simple_types.first }
@@ -128,7 +128,7 @@ RSpec.describe Xseed::Documentation::Generators::PropertiesTableGenerator do
         html = result.join
         restriction = simple_type.at_xpath(
           "xsd:restriction",
-          "xsd" => Xseed::Parser::XsdParser::XSD_NS
+          "xsd" => Xseed::Parser::XsdParser::XSD_NS,
         )
         # Check for facets like enumeration, pattern, minLength, etc.
         if restriction&.at_xpath("xsd:enumeration", "xsd" => Xseed::Parser::XsdParser::XSD_NS)
@@ -141,7 +141,7 @@ RSpec.describe Xseed::Documentation::Generators::PropertiesTableGenerator do
   describe "row generation methods" do
     let(:parser) do
       Xseed::Parser::XsdParser.new(
-        File.join(fixture_path, "simple/element_only.xsd")
+        File.join(fixture_path, "simple/element_only.xsd"),
       )
     end
     let(:element) { parser.elements.first }

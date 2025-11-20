@@ -86,7 +86,7 @@ module Xseed
 
             highlighted = "<span class=\"nt\">&lt;#{tag_close}#{tag_name}"
             highlighted += rest if rest && !rest.empty?
-            highlighted + "&gt;</span>"
+            "#{highlighted}&gt;</span>"
           end
 
           # Highlight type information
@@ -345,8 +345,8 @@ module Xseed
 
           # Show group indicators for choice and occurrence > 1
           show_group = group.name == "choice" ||
-                       (group["minOccurs"] && group["minOccurs"] != "1") ||
-                       (group["maxOccurs"] && group["maxOccurs"] != "1")
+            (group["minOccurs"] && group["minOccurs"] != "1") ||
+            (group["maxOccurs"] && group["maxOccurs"] != "1")
 
           if show_group
             result << "#{indent}<!-- Start #{group_name} #{format_occurs(group)} -->"

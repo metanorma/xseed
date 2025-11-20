@@ -78,8 +78,8 @@ RSpec.describe Xseed::Documentation::Utils::References do
         namespaces: {
           "xs" => "http://www.w3.org/2001/XMLSchema",
           "tns" => "http://example.com/target",
-          "ext" => "http://example.com/extension"
-        }
+          "ext" => "http://example.com/extension",
+        },
       )
     end
 
@@ -137,8 +137,8 @@ RSpec.describe Xseed::Documentation::Utils::References do
           target_namespace: "http://example.com/target",
           namespaces: {
             "tns" => "http://example.com/target",
-            "xs" => "http://www.w3.org/2001/XMLSchema"
-          }
+            "xs" => "http://www.w3.org/2001/XMLSchema",
+          },
         )
       end
 
@@ -152,7 +152,7 @@ RSpec.describe Xseed::Documentation::Utils::References do
         double(
           "Schema",
           target_namespace: nil,
-          namespaces: {}
+          namespaces: {},
         )
       end
 
@@ -175,8 +175,8 @@ RSpec.describe Xseed::Documentation::Utils::References do
           "Schema",
           namespaces: {
             "xs" => "http://www.w3.org/2001/XMLSchema",
-            "tns" => "http://example.com/target"
-          }
+            "tns" => "http://example.com/target",
+          },
         )
       end
 
@@ -190,8 +190,8 @@ RSpec.describe Xseed::Documentation::Utils::References do
         double(
           "Schema",
           namespaces: {
-            "xsd" => "http://www.w3.org/2001/XMLSchema"
-          }
+            "xsd" => "http://www.w3.org/2001/XMLSchema",
+          },
         )
       end
 
@@ -205,8 +205,8 @@ RSpec.describe Xseed::Documentation::Utils::References do
         double(
           "Schema",
           namespaces: {
-            "tns" => "http://example.com/target"
-          }
+            "tns" => "http://example.com/target",
+          },
         )
       end
 
@@ -230,8 +230,8 @@ RSpec.describe Xseed::Documentation::Utils::References do
         namespaces: {
           "xs" => "http://www.w3.org/2001/XMLSchema",
           "tns" => "http://example.com/target",
-          "ext" => "http://example.com/extension"
-        }
+          "ext" => "http://example.com/extension",
+        },
       )
     end
 
@@ -241,7 +241,7 @@ RSpec.describe Xseed::Documentation::Utils::References do
         expect(result).to eq({
                                namespace: "http://www.w3.org/2001/XMLSchema",
                                prefix: "xs",
-                               local_name: "string"
+                               local_name: "string",
                              })
       end
 
@@ -250,7 +250,7 @@ RSpec.describe Xseed::Documentation::Utils::References do
         expect(result).to eq({
                                namespace: "http://example.com/target",
                                prefix: "tns",
-                               local_name: "MyType"
+                               local_name: "MyType",
                              })
       end
     end
@@ -261,7 +261,7 @@ RSpec.describe Xseed::Documentation::Utils::References do
         expect(result).to eq({
                                namespace: nil,
                                prefix: "",
-                               local_name: "SimpleType"
+                               local_name: "SimpleType",
                              })
       end
     end
@@ -272,7 +272,7 @@ RSpec.describe Xseed::Documentation::Utils::References do
         expect(result).to eq({
                                namespace: nil,
                                prefix: "",
-                               local_name: ""
+                               local_name: "",
                              })
       end
     end

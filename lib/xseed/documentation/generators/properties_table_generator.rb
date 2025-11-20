@@ -75,7 +75,9 @@ module Xseed
             end
             xml.dd(class: "") do
               if schema["targetNamespace"]
-                xml.span(class: "targetNS") { xml.text schema["targetNamespace"] }
+                xml.span(class: "targetNS") do
+                  xml.text schema["targetNamespace"]
+                end
               else
                 xml.text "None"
               end
@@ -94,7 +96,9 @@ module Xseed
             end
 
             # Element and Attribute Namespaces
-            xml.dt(class: "header") { xml.text "Element and Attribute Namespaces" }
+            xml.dt(class: "header") do
+              xml.text "Element and Attribute Namespaces"
+            end
             xml.dd(class: "") do
               xml.ul do
                 xml.li do
@@ -160,7 +164,7 @@ module Xseed
               xml.dt(class: "header") { xml.text "Used By" }
               xml.dd(class: "") do
                 used_by.each_with_index do |type_name, idx|
-                  xml.text ", " if idx > 0
+                  xml.text ", " if idx.positive?
                   xml.span(class: "type") { type_ref_link(xml, type_name) }
                 end
               end
@@ -202,7 +206,8 @@ module Xseed
             final_value = get_final_value
             if final_value && !final_value.empty?
               xml.dt(class: "header") do
-                glossary_term_ref(xml, "ElemFinal", "Substitution Group Exclusions")
+                glossary_term_ref(xml, "ElemFinal",
+                                  "Substitution Group Exclusions")
               end
               xml.dd(class: "") { xml.text final_value }
             end
@@ -246,7 +251,7 @@ module Xseed
               xml.dt(class: "header") { xml.text "Used By" }
               xml.dd(class: "") do
                 used_by.each_with_index do |elem_name, idx|
-                  xml.text ", " if idx > 0
+                  xml.text ", " if idx.positive?
                   xml.span(class: "type") { element_ref_link(xml, elem_name) }
                 end
               end
@@ -279,7 +284,8 @@ module Xseed
               block_value = get_derivation_set(component["block"] || schema["blockDefault"])
               unless block_value.empty?
                 xml.dt(class: "header") do
-                  glossary_term_ref(xml, "TypeBlock", "Prohibited Substitutions")
+                  glossary_term_ref(xml, "TypeBlock",
+                                    "Prohibited Substitutions")
                 end
                 xml.dd(class: "") { xml.text block_value }
               end
@@ -302,17 +308,17 @@ module Xseed
 
           # Check for complexContent/restriction
           restriction = component.at_xpath("xsd:complexContent/xsd:restriction",
-                                          "xsd" => XSD_NS)
+                                           "xsd" => XSD_NS)
           return restriction["base"] if restriction
 
           # Check for simpleContent/extension
           extension = component.at_xpath("xsd:simpleContent/xsd:extension",
-                                        "xsd" => XSD_NS)
+                                         "xsd" => XSD_NS)
           return extension["base"] if extension
 
           # Check for simpleContent/restriction
           restriction = component.at_xpath("xsd:simpleContent/xsd:restriction",
-                                          "xsd" => XSD_NS)
+                                           "xsd" => XSD_NS)
           restriction["base"] if restriction
         end
 
@@ -407,7 +413,7 @@ module Xseed
                 xml.dt(class: "header") { xml.text "Used By" }
                 xml.dd(class: "") do
                   used_by.each_with_index do |type_name, idx|
-                    xml.text ", " if idx > 0
+                    xml.text ", " if idx.positive?
                     xml.span(class: "type") { type_ref_link(xml, type_name) }
                   end
                 end
@@ -454,8 +460,10 @@ module Xseed
           build_dl do |xml|
             xml.dt { xml.text "Documentation" }
             xml.dd do
-              xml.div(class: "annotation documentation", id: "wdoc-#{component.object_id}") do
-                xml.div(class: "hidden", id: "#{component.object_id}-doc-raw") do
+              xml.div(class: "annotation documentation",
+                      id: "wdoc-#{component.object_id}") do
+                xml.div(class: "hidden",
+                        id: "#{component.object_id}-doc-raw") do
                   xml.text doc_content
                 end
                 xml.div(class: "xs3p-doc", id: "#{component.object_id}-doc") do
@@ -542,10 +550,8 @@ module Xseed
               xml.li do
                 xml.text "Union of following types: "
                 xml.ul do
-                  if union_elem["memberTypes"]
-                    union_elem["memberTypes"].split.each do |member_type|
-                      xml.li { type_ref_link(xml, member_type) }
-                    end
+                  union_elem["memberTypes"]&.split&.each do |member_type|
+                    xml.li { type_ref_link(xml, member_type) }
                   end
                   # Locally-defined member types
                   union_elem.xpath("xsd:simpleType", "xsd" => XSD_NS).each do
@@ -575,7 +581,9 @@ module Xseed
               end
             else
               # Look up the base type and recurse
-              base_type_elem = schema.at_xpath("//xsd:simpleType[@name='#{base_name}']", "xsd" => XSD_NS)
+              base_type_elem = schema.at_xpath(
+                "//xsd:simpleType[@name='#{base_name}']", "xsd" => XSD_NS
+              )
               if base_type_elem
                 base_gen = self.class.new(base_type_elem, config)
                 base_gen.print_simple_constraints(xml)
@@ -594,11 +602,11 @@ module Xseed
           # Enumeration
           enums = restriction.xpath("xsd:enumeration", "xsd" => XSD_NS)
           if enums.any?
-            facets_list << -> (xml) do
+            facets_list << ->(xml) do
               xml.em { xml.text "value" }
               xml.text " comes from list: {"
               enums.each_with_index do |enum, idx|
-                xml.text "|" if idx > 0
+                xml.text "|" if idx.positive?
                 xml.text "'#{enum['value']}'"
               end
               xml.text "}"
@@ -608,7 +616,7 @@ module Xseed
           # Pattern
           pattern = restriction.at_xpath("xsd:pattern", "xsd" => XSD_NS)
           if pattern
-            facets_list << -> (xml) do
+            facets_list << ->(xml) do
               xml.em { xml.text "pattern" }
               xml.text " = #{pattern['value']}"
             end
@@ -617,22 +625,24 @@ module Xseed
           # Range facets
           range_facet = get_range_facet(restriction)
           if range_facet
-            facets_list << -> (xml) { xml << range_facet }
+            facets_list << ->(xml) { xml << range_facet }
           end
 
           # Total digits
-          total_digits = restriction.at_xpath("xsd:totalDigits", "xsd" => XSD_NS)
+          total_digits = restriction.at_xpath("xsd:totalDigits",
+                                              "xsd" => XSD_NS)
           if total_digits
-            facets_list << -> (xml) do
+            facets_list << ->(xml) do
               xml.em { xml.text "total no. of digits" }
               xml.text " = #{total_digits['value']}"
             end
           end
 
           # Fraction digits
-          fraction_digits = restriction.at_xpath("xsd:fractionDigits", "xsd" => XSD_NS)
+          fraction_digits = restriction.at_xpath("xsd:fractionDigits",
+                                                 "xsd" => XSD_NS)
           if fraction_digits
-            facets_list << -> (xml) do
+            facets_list << ->(xml) do
               xml.em { xml.text "no. of fraction digits" }
               xml.text " = #{fraction_digits['value']}"
             end
@@ -641,20 +651,23 @@ module Xseed
           # Length facets
           length_facet = get_length_facet(restriction)
           if length_facet
-            facets_list << -> (xml) { xml << length_facet }
+            facets_list << ->(xml) { xml << length_facet }
           end
 
           # Whitespace
           whitespace = restriction.at_xpath("xsd:whiteSpace", "xsd" => XSD_NS)
           if whitespace
-            facets_list << -> (xml) do
+            facets_list << ->(xml) do
               xml.em { xml.text "Whitespace policy: " }
               policy_code = case whitespace["value"]
-                           when "preserve" then "PreserveWS"
-                           when "replace" then "ReplaceWS"
-                           when "collapse" then "CollapseWS"
-                           end
-              glossary_term_ref(xml, policy_code, whitespace["value"]) if policy_code
+                            when "preserve" then "PreserveWS"
+                            when "replace" then "ReplaceWS"
+                            when "collapse" then "CollapseWS"
+                            end
+              if policy_code
+                glossary_term_ref(xml, policy_code,
+                                  whitespace["value"])
+              end
             end
           end
 
@@ -718,9 +731,11 @@ module Xseed
           return [] unless elem_name
 
           used_by = []
-          schema.xpath("//xsd:element[@ref='#{elem_name}']", "xsd" => XSD_NS).each do |ref_elem|
+          schema.xpath("//xsd:element[@ref='#{elem_name}']",
+                       "xsd" => XSD_NS).each do |ref_elem|
             # Find containing complex type
-            parent_type = ref_elem.at_xpath("ancestor::xsd:complexType[@name]", "xsd" => XSD_NS)
+            parent_type = ref_elem.at_xpath("ancestor::xsd:complexType[@name]",
+                                            "xsd" => XSD_NS)
             used_by << parent_type["name"] if parent_type
           end
           used_by.uniq
@@ -731,9 +746,10 @@ module Xseed
           type_name = component["name"]
           return [] unless type_name
 
-          used_by = []
-          schema.xpath("//xsd:element[@type='#{type_name}'] | //xsd:element[@type='#{get_prefixed_name(type_name)}']", "xsd" => XSD_NS).each do |elem|
-            used_by << elem["name"]
+          used_by = schema.xpath(
+            "//xsd:element[@type='#{type_name}'] | //xsd:element[@type='#{get_prefixed_name(type_name)}']", "xsd" => XSD_NS
+          ).map do |elem|
+            elem["name"]
           end
           used_by.uniq.compact
         end
@@ -744,8 +760,10 @@ module Xseed
           return [] unless group_name
 
           used_by = []
-          schema.xpath("//xsd:attributeGroup[@ref='#{group_name}']", "xsd" => XSD_NS).each do |ref|
-            parent_type = ref.at_xpath("ancestor::xsd:complexType[@name]", "xsd" => XSD_NS)
+          schema.xpath("//xsd:attributeGroup[@ref='#{group_name}']",
+                       "xsd" => XSD_NS).each do |ref|
+            parent_type = ref.at_xpath("ancestor::xsd:complexType[@name]",
+                                       "xsd" => XSD_NS)
             used_by << parent_type["name"] if parent_type
           end
           used_by.uniq
@@ -836,12 +854,13 @@ module Xseed
           return "no" unless bool_value
 
           normalized = bool_value.to_s.downcase
-          (normalized == "true" || normalized == "1") ? "yes" : "no"
+          ["true", "1"].include?(normalized) ? "yes" : "no"
         end
 
         # Check if schema has imports, includes, or redefines
         def has_schema_composition?
-          schema.at_xpath("xsd:import | xsd:include | xsd:redefine", "xsd" => XSD_NS)
+          schema.at_xpath("xsd:import | xsd:include | xsd:redefine",
+                          "xsd" => XSD_NS)
         end
 
         # Generate schema composition info
@@ -889,21 +908,25 @@ module Xseed
               end
             end
             xml.text "See "
-            xml.a(href: "#Redefinitions") { xml.text "Redefined Schema Components" }
+            xml.a(href: "#Redefinitions") do
+              xml.text "Redefined Schema Components"
+            end
             xml.text " section."
           end
         end
 
         # Extract documentation text
         def extract_documentation
-          doc_node = component.at_xpath("xsd:annotation/xsd:documentation", "xsd" => XSD_NS)
+          doc_node = component.at_xpath("xsd:annotation/xsd:documentation",
+                                        "xsd" => XSD_NS)
           doc_node&.text&.strip
         end
 
         # Generate glossary term reference link
         def glossary_term_ref(xml, code, term)
           if config.print_glossary
-            xml.a(title: "Look up '#{term}' in glossary", href: "#term_#{code}") do
+            xml.a(title: "Look up '#{term}' in glossary",
+                  href: "#term_#{code}") do
               xml.text term
             end
           else
@@ -914,7 +937,8 @@ module Xseed
         # Generate type reference link
         def type_ref_link(xml, type_ref)
           type_name = type_ref.include?(":") ? type_ref.split(":").last : type_ref
-          xml.a(title: "Jump to \"#{type_name}\" type definition.", href: "#type_#{type_name}") do
+          xml.a(title: "Jump to \"#{type_name}\" type definition.",
+                href: "#type_#{type_name}") do
             xml.text type_name
           end
         end
@@ -922,7 +946,8 @@ module Xseed
         # Generate element reference link
         def element_ref_link(xml, elem_ref)
           elem_name = elem_ref.include?(":") ? elem_ref.split(":").last : elem_ref
-          xml.a(title: "Jump to \"#{elem_name}\" element declaration.", href: "#element_#{elem_name}") do
+          xml.a(title: "Jump to \"#{elem_name}\" element declaration.",
+                href: "#element_#{elem_name}") do
             xml.text elem_name
           end
         end

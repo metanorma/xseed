@@ -13,7 +13,7 @@ RSpec.describe "XsdParser Integration Tests" do
     context "with unitsml-v1.0.xsd" do
       let(:parser) do
         Xseed::Parser::XsdParser.new(
-          fixture_path("real_world/unitsml-v1.0.xsd")
+          fixture_path("real_world/unitsml-v1.0.xsd"),
         )
       end
 
@@ -58,7 +58,7 @@ RSpec.describe "XsdParser Integration Tests" do
     context "with recursive_groups.xsd" do
       let(:parser) do
         Xseed::Parser::XsdParser.new(
-          fixture_path("simple/recursive_groups.xsd")
+          fixture_path("simple/recursive_groups.xsd"),
         )
       end
 
@@ -116,7 +116,7 @@ RSpec.describe "XsdParser Integration Tests" do
           "simple/complex_type.xsd",
           "simple/simple_type.xsd",
           "simple/recursive_groups.xsd",
-          "real_world/unitsml-v1.0.xsd"
+          "real_world/unitsml-v1.0.xsd",
         ]
       end
 
@@ -202,7 +202,7 @@ RSpec.describe "XsdParser Integration Tests" do
     context "with complex_type.xsd" do
       let(:parser) do
         Xseed::Parser::XsdParser.new(
-          fixture_path("simple/complex_type.xsd")
+          fixture_path("simple/complex_type.xsd"),
         )
       end
 
@@ -228,7 +228,7 @@ RSpec.describe "XsdParser Integration Tests" do
     context "with simple_type.xsd" do
       let(:parser) do
         Xseed::Parser::XsdParser.new(
-          fixture_path("simple/simple_type.xsd")
+          fixture_path("simple/simple_type.xsd"),
         )
       end
 
