@@ -6,6 +6,7 @@ SimpleCov.start do
 end
 
 require "xseed"
+require "canon"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

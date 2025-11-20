@@ -2,7 +2,6 @@
 
 require "thor"
 require "fileutils"
-require_relative "svg/svg_generator"
 require_relative "documentation/config"
 require_relative "documentation/html_generator"
 require_relative "version"
@@ -25,13 +24,7 @@ module Xseed
     long_desc <<~DESC
       Generate an SVG diagram visualizing the structure of an XSD schema file.
 
-      The diagram shows elements, types, attributes, and their relationships in a
-      hierarchical tree layout.
-
-      Single-Element Mode:
-        Use --element to generate a diagram for a single element instead of the entire schema.
-        Use --all-elements to generate separate diagrams for all elements in the schema.
-        Use --output-dir to specify a directory for batch output (required with --all-elements).
+      This command uses the xsdvi gem for SVG generation.
 
       Examples:
 
@@ -39,102 +32,74 @@ module Xseed
         $ xseed svg schema.xsd -o diagram.svg
 
         # Generate diagram for a single element
-        $ xseed svg schema.xsd -e Order -o order.svg
-
-        # Generate diagrams for all elements
-        $ xseed svg schema.xsd --all-elements -d output_dir
+        $ xseed svg schema.xsd -r ElementName -o diagram.svg
 
         # Output SVG to stdout
         $ xseed svg schema.xsd
 
-        # Verbose output with progress
-        $ xseed svg large-schema.xsd -o output.svg --verbose
-
-      For more information, visit: https://github.com/metanorma/xseed
+      For more options, see: https://github.com/metanorma/xsdvi-ruby
     DESC
     option :output,
            aliases: "-o",
            desc: "Output file path (default: stdout)",
            banner: "PATH"
-    option :element,
-           aliases: "-e",
-           desc: "Generate diagram for a single element",
-           banner: "ELEMENT_NAME"
-    option :all_elements,
+    option :root_node_name,
+           aliases: "-r",
+           desc: "Root element name to visualize",
+           banner: "NAME"
+    option :one_node_only,
            type: :boolean,
-           desc: "Generate diagrams for all elements in schema"
-    option :output_dir,
-           aliases: "-d",
-           desc: "Output directory for batch generation (required with --all-elements)",
-           banner: "DIR"
+           desc: "Show only the specified element"
     option :force,
            type: :boolean,
            aliases: "-f",
            desc: "Overwrite output file if it exists"
     def svg(input_xsd)
+      require "xsdvi"
+
       start_time = Time.now
 
       # Validate input file
       validate_input_file!(input_xsd)
 
-      # Handle --all-elements mode
-      if options[:all_elements]
-        unless options[:output_dir]
-          error_exit "--output-dir/-d is required when using --all-elements"
-        end
-
-        generate_all_elements(input_xsd)
-        return
-      end
-
-      # Handle single element mode
-      if options[:element]
-        generate_single_element(input_xsd, options[:element])
-        return
-      end
-
-      # Standard schema-wide generation
       # Check output file permissions if specified
       validate_output_path!(options[:output]) if options[:output]
 
-      # Create generator with progress tracking
-      log_verbose "Parsing XSD schema: #{input_xsd}"
-      generator = create_generator(input_xsd)
-      log_verbose "Parser initialized successfully"
+      log_verbose "Generating SVG using xsdvi gem"
 
-      # Determine output path
-      output_path = options[:output]
+      # Create xsdvi components using proper Ruby API
+      output_path = options[:output] || "/dev/stdout"
+      writer = Xsdvi::Utils::Writer.new(output_path)
+      builder = Xsdvi::Tree::Builder.new
+      handler = Xsdvi::XsdHandler.new(builder)
 
-      if output_path
-        # Check if output file exists
-        check_output_file_exists!(output_path)
+      # Set options
+      handler.root_node_name = options[:root_node_name] if options[:root_node_name]
+      handler.one_node_only = options[:one_node_only] if options[:one_node_only]
 
-        # Generate and write to file with progress
-        log_with_progress("Generating SVG diagram") do
-          generator.generate_file(output_path)
-        end
+      # Process XSD file
+      handler.process_file(input_xsd)
+      root_symbol = builder.root
 
-        elapsed = Time.now - start_time
-        say "✓ SVG diagram generated: #{output_path}", :green
-        log_verbose "Generation completed in #{elapsed.round(3)}s"
-      else
-        # Generate and output to stdout
-        log_verbose "Generating SVG to stdout"
-        svg_content = generator.generate
-        say svg_content
+      # Generate SVG
+      generator = Xsdvi::SVG::Generator.new(writer)
+      generator.hide_menu_buttons = options[:one_node_only] if options[:one_node_only]
+
+      log_with_progress("Generating SVG diagram") do
+        generator.draw(root_symbol)
       end
+
+      if options[:output]
+        elapsed = Time.now - start_time
+        say "✓ SVG diagram generated: #{options[:output]}", :green
+        log_verbose "Generation completed in #{elapsed.round(3)}s"
+      end
+    rescue LoadError
+      error_exit "xsdvi gem not found. Please run: gem install xsdvi"
     rescue ArgumentError => e
       error_exit "Validation error: #{e.message}"
-    rescue ParserError => e
-      error_exit "Parser error: #{e.message}"
-    rescue Svg::GenerationError => e
-      error_exit "SVG generation error: #{e.message}"
-    rescue Errno::EACCES => e
-      error_exit "Permission denied: #{e.message}"
-    rescue Errno::ENOSPC
-      error_exit "No space left on device"
     rescue StandardError => e
-      error_exit "Unexpected error: #{e.message}", show_backtrace: true
+      error_exit "SVG generation error: #{e.message}", show_backtrace: true
     end
 
     desc "html INPUT_XSD [OPTIONS]",
@@ -142,17 +107,22 @@ module Xseed
     long_desc <<~DESC
       Generate comprehensive HTML documentation from an XSD schema file.
 
-      Phase 2, Weeks 1-2: Foundation Layer is now available with basic HTML generation.
-      Full documentation features will be available in Weeks 3-6.
+      SVG diagrams are automatically generated for all elements using the xsdvi gem.
+      The diagrams are placed in a subdirectory (default: diagrams/) and automatically
+      embedded in the HTML with <object> tags.
 
       Options:
-        -o, --output PATH    Output HTML file path
-        -t, --title TEXT     Documentation title
-        --css PATH           External CSS file to include
-        --include-svg        Include SVG diagrams (default: true)
+        -o, --output PATH       Output HTML file path
+        -t, --title TEXT        Documentation title
+        --css PATH              External CSS file to include
+        -d, --diagrams-dir DIR  Directory for SVG diagrams (default: diagrams)
 
       Example:
-        $ xseed html schema.xsd -o documentation.html -t "My Schema"
+        $ xseed htm schema.xsd -o docs/index.html
+
+        This generates:
+          docs/index.html           (HTML documentation)
+          docs/diagrams/*.svg       (SVG diagrams for each element)
 
       For more information, visit: https://github.com/metanorma/xseed
     DESC
@@ -167,10 +137,10 @@ module Xseed
     option :css,
            desc: "External CSS file",
            banner: "PATH"
-    option :include_svg,
-           type: :boolean,
-           default: true,
-           desc: "Include SVG diagrams"
+    option :diagrams_dir,
+           aliases: "-d",
+           desc: "Directory for SVG diagrams relative to output (default: diagrams)",
+           banner: "DIR"
     option :force,
            type: :boolean,
            aliases: "-f",
@@ -188,6 +158,7 @@ module Xseed
       config = Xseed::Documentation::Config.new
       config.title = options[:title] if options[:title]
       config.external_css_url = options[:css] if options[:css]
+      config.diagrams_dir = options[:diagrams_dir] if options[:diagrams_dir]
 
       log_verbose "Creating HTML generator for: #{input_xsd}"
 
@@ -210,9 +181,6 @@ module Xseed
         elapsed = Time.now - start_time
         say "✓ HTML documentation generated: #{output_path}", :green
         log_verbose "Generation completed in #{elapsed.round(3)}s"
-        say ""
-        say "Note: Phase 2 Foundation Layer (Weeks 1-2) is active.", :yellow
-        say "Full documentation features coming in Weeks 3-6.", :yellow
       else
         # Generate and output to stdout
         log_verbose "Generating HTML to stdout"
@@ -228,17 +196,15 @@ module Xseed
     desc "version", "Display Xseed version information"
     def version
       say "━" * 60, :cyan
-      say "Xseed - XSD Schema Documentation Generator", :cyan
+      say "Xseed - XSD Documentation Generator", :cyan
       say "━" * 60, :cyan
       say ""
       say "Version: #{Xseed::VERSION}", :green
-      say "Phase: 1 (SVG Generation)", :green
       say ""
       say "Features:"
-      say "  ✓ SVG diagram generation", :green
+      say "  ✓ HTML documentation generation (native)", :green
+      say "  ✓ SVG diagram generation (via xsdvi gem)", :green
       say "  ✓ XSD schema parsing", :green
-      say "  ✓ Symbol tree visualization", :green
-      say "  ⧗ HTML documentation (Phase 2)", :yellow
       say ""
       say "GitHub: https://github.com/metanorma/xseed"
       say "License: BSD-2-Clause"
@@ -350,104 +316,6 @@ module Xseed
 
         say "Aborted.", :red
         exit 1
-      end
-
-      # Creates SVG generator with error handling
-      def create_generator(input_xsd, element: nil)
-        Svg::SvgGenerator.new(input_xsd, element: element)
-      rescue StandardError => e
-        raise ParserError, "Failed to initialize parser: #{e.message}"
-      end
-
-      # Generates diagram for a single element
-      def generate_single_element(input_xsd, element_name)
-        start_time = Time.now
-
-        log_verbose "Generating diagram for element: #{element_name}"
-        generator = create_generator(input_xsd, element: element_name)
-
-        output_path = options[:output]
-
-        if output_path
-          validate_output_path!(output_path)
-          check_output_file_exists!(output_path)
-
-          log_with_progress("Generating SVG for element '#{element_name}'") do
-            generator.generate_file(output_path)
-          end
-
-          elapsed = Time.now - start_time
-          say "✓ SVG diagram generated for '#{element_name}': #{output_path}", :green
-          log_verbose "Generation completed in #{elapsed.round(3)}s"
-        else
-          log_verbose "Generating SVG for element '#{element_name}' to stdout"
-          svg_content = generator.generate
-          say svg_content
-        end
-      rescue ArgumentError => e
-        error_exit "Element error: #{e.message}"
-      end
-
-      # Generates diagrams for all elements in schema
-      def generate_all_elements(input_xsd)
-        start_time = Time.now
-        output_dir = options[:output_dir]
-
-        # Create output directory
-        FileUtils.mkdir_p(output_dir)
-        log_verbose "Created output directory: #{output_dir}"
-
-        # Get all element names
-        log_verbose "Scanning schema for elements..."
-        generator = create_generator(input_xsd)
-        element_names = generator.all_element_names
-
-        if element_names.empty?
-          error_exit "No elements found in schema"
-        end
-
-        say "Found #{element_names.length} elements in schema", :cyan
-        say ""
-
-        # Generate diagram for each element
-        success_count = 0
-        error_count = 0
-
-        element_names.each_with_index do |element_name, index|
-          begin
-            output_file = File.join(output_dir, "#{element_name}.svg")
-
-            if options[:verbose]
-              say "  [#{index + 1}/#{element_names.length}] Generating #{element_name}...", :cyan
-            else
-              # Show progress bar for non-verbose mode
-              print "\r  Progress: [#{index + 1}/#{element_names.length}] #{element_name}".ljust(60)
-            end
-
-            element_generator = create_generator(input_xsd, element: element_name)
-            element_generator.generate_file(output_file)
-
-            success_count += 1
-            log_verbose "    ✓ Written to #{output_file}"
-          rescue StandardError => e
-            error_count += 1
-            say "\n  ✗ Error generating #{element_name}: #{e.message}", :red if options[:verbose]
-          end
-        end
-
-        # Clear progress line and show summary
-        print "\r".ljust(80) + "\r" unless options[:verbose]
-        say ""
-
-        elapsed = Time.now - start_time
-        say "✓ Batch generation complete", :green
-        say "  Successfully generated: #{success_count}/#{element_names.length} diagrams", :green
-        say "  Errors: #{error_count}", :red if error_count > 0
-        say "  Output directory: #{output_dir}", :cyan
-        log_verbose "  Total time: #{elapsed.round(3)}s"
-        log_verbose "  Average time per element: #{(elapsed / element_names.length).round(3)}s"
-      rescue StandardError => e
-        error_exit "Batch generation error: #{e.message}", show_backtrace: true
       end
 
       # Logs message if verbose option is enabled

@@ -1,5 +1,4 @@
 = Xseed: Ruby XSD Documentation Generator
-:version: 1.0.0
 
 image:https://img.shields.io/gem/v/xseed.svg[RubyGems Version, link=https://rubygems.org/gems/xseed]
 image:https://img.shields.io/github/license/metanorma/xseed.svg[License, link=https://github.com/metanorma/xseed/blob/main/LICENSE.adoc]
@@ -9,998 +8,379 @@ image:https://img.shields.io/badge/coverage-87.63%25-brightgreen[Coverage]
 
 == Purpose
 
-Xseed v1.0.0 is a production-ready Ruby port of two complementary XSD documentation tools:
+Xseed provides comprehensive XSD documentation generation with a single command:
 
-* **XSDVI** (Java) - XSD to interactive SVG diagram generation
-* **XS3P** (XSLT) - XSD to HTML documentation generation
-
-Xseed provides a unified Ruby gem for generating comprehensive documentation
-from XML Schema Definition (XSD) files with exceptional performance and
-**100% parity** with reference implementations.
+* **Automatic SVG generation** - When generating HTML, xseed automatically creates SVG diagrams for all elements using the xsdvi gem
+* **HTML documentation** - Complete schema reference with embedded SVG diagrams (XS3P port)
+* **Single-command workflow** - One command generates everything: HTML + all SVG diagrams
 
 == Features
 
-* <<svg-generation,SVG diagram generation>> - Interactive, hierarchical schema
-  visualizations **✅ 100% PARITY**
-* <<html-documentation,HTML documentation generation>> - Comprehensive schema
-  documentation with examples **✅ 100% PARITY**
-* <<cli-interface,Command-line interface>> - Professional Thor-based CLI with
-  verbose mode, progress indicators, and helpful error messages
-* <<performance,High performance>> - Generate diagrams for large schemas in
-  milliseconds (real-world: ~15ms SVG, ~260ms HTML)
-* <<error-handling,Robust error handling>> - Graceful degradation with helpful
-  error messages
+* **Single-command generation** - `xseed html` automatically generates HTML documentation and all SVG diagrams
+* **Integrated SVG diagrams** - Uses xsdvi gem Ruby API to generate diagram for each element
+* **Comprehensive HTML** - Schema properties, component listings, type hierarchies, XML samples
+* <<cli-interface,Professional CLI>> - Thor-based with verbose mode and progress indicators
+* <<performance,High performance>> - Generates complete documentation in milliseconds
+* <<error-handling,Robust error handling>> - Graceful degradation with helpful messages
 * **21 complete features** - All P0, P1, and P2 features implemented
 
 == Quick Start
 
 [source,shell]
 ----
-# Install the gem
+# Install the gem (includes xsdvi for SVG generation)
 gem install xseed
 
-# Generate SVG diagram
-xseed svg schema.xsd -o diagram.svg
+# Generate complete documentation (HTML + all SVG diagrams)
+xseed html schema.xsd -o docs/index.html
+
+# Result:
+#   docs/index.html           (HTML with embedded SVG references)
+#   docs/diagrams/*.svg       (SVG diagram for each element)
 
 # View schema information
 xseed info schema.xsd
 
-# Generate with verbose output
-xseed svg schema.xsd -o diagram.svg --verbose
-
 # Display help
-xseed help svg
-----
-
-== Architecture
-
-=== General
-
-Xseed follows a model-driven architecture with clear separation of concerns.
-
-.High-level architecture
-[source]
-----
-┌─────────────────────────────────────────────────────────┐
-│                    Xseed Gem                            │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌─────────────┐      ┌──────────────┐                │
-│  │   CLI       │─────▶│  Transformer │                │
-│  │  (Thor)     │      │   (Main)     │                │
-│  └─────────────┘      └──────┬───────┘                │
-│                              │                          │
-│                    ┌─────────┴─────────┐               │
-│                    │                   │               │
-│           ┌────────▼────────┐  ┌──────▼────────┐      │
-│           │  Phase 1 ✓      │  │  Phase 2      │      │
-│           │  SVG Generator  │  │  HTML Generator│     │
-│           └────────┬────────┘  └──────┬────────┘      │
-│                    │                   │               │
-│              ┌─────▼─────┐       ┌────▼─────┐         │
-│              │   XSD     │       │   XSD    │         │
-│              │  Parser   │◀──────│  Parser  │         │
-│              │ (Shared)  │       │ (Shared) │         │
-│              └───────────┘       └──────────┘         │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-----
-
-=== Module organization
-
-[source,ruby]
-----
-Xseed/
-├── CLI                    # Command-line interface
-├── Parser                 # XSD parsing (shared)
-│   └── XsdParser         # Main XSD parser with strict validation
-├── Models                 # Domain models (shared)
-│   ├── Schema
-│   ├── Element
-│   ├── ComplexType
-│   ├── SimpleType
-│   └── ...
-├── Svg                    # Phase 1: SVG generation ✓
-│   ├── SvgGenerator      # Main orchestrator
-│   ├── LayoutEngine      # Positioning algorithm
-│   ├── SvgRenderer       # SVG output generation
-│   ├── SymbolFactory     # Symbol creation
-│   └── Symbol/           # Symbol hierarchy
-│       ├── Base
-│       ├── ElementSymbol
-│       ├── ComplexTypeSymbol
-│       ├── SimpleTypeSymbol
-│       └── ... (14 symbol types)
-└── Documentation          # Phase 2: HTML generation ✓
-    ├── HtmlGenerator      # Main orchestrator
-    ├── Config             # Configuration settings
-    ├── CssRenderer        # CSS styling
-    ├── JsRenderer         # JavaScript features
-    ├── NavigationRenderer # TOC and sidebar
-    ├── PropertiesTableRenderer # Component tables
-    ├── InstanceSamplesRenderer # XML examples
-    └── TypeHierarchyRenderer   # Type relationships
-----
-
-== Installation
-
-Add this line to your application's Gemfile:
-
-[source,ruby]
-----
-gem "xseed"
-----
-
-And then execute:
-
-[source,shell]
-----
-bundle install
-----
-
-Or install it yourself as:
-
-[source,shell]
-----
-gem install xseed
-----
-
-== Usage
-
-[[cli-interface]]
-=== Command-line interface
-
-Xseed provides a professional Thor-based CLI with comprehensive options and
-helpful output.
-
-==== Display help and version
-
-[source,shell]
-----
-# Show all available commands
 xseed help
-
-# Show help for specific command
-xseed help svg
-
-# Display version information
-xseed version
 ----
 
-==== View schema information
+== Complete Workflow
 
-The `info` command displays detailed metadata about an XSD schema without
-generating output:
+=== Single-command integrated documentation
+
+**One command does everything** - xseed automatically generates all SVG diagrams when creating HTML:
 
 [source,shell]
 ----
-xseed info schema.xsd
+# This single command generates EVERYTHING:
+xseed html schema.xsd -o docs/index.html
 ----
 
-Output includes:
+**What it generates:**
 
-* File size
-* Target namespace and version
-* Component counts (elements, types, groups)
-* Complexity estimation
-* Estimated generation time
-* Schema documentation excerpt
+* `docs/index.html` - Complete HTML documentation
+* `docs/diagrams/*.svg` - SVG diagram for EVERY element (auto-generated using xsdvi)
+* Proper `<object>` tag integration in HTML
 
-.Example output
-====
-[source]
-----
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-XSD Schema Information
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**That's it!** No need for separate SVG generation commands.
 
-File: my-schema.xsd
-Size: 45.3 KB
-
-Schema Metadata:
-  Target Namespace: http://example.com/myschema
-  Version: 1.0.0
-  Element Form Default: qualified
-
-Components:
-  Elements: 25
-  Complex Types: 18
-  Simple Types: 12
-  Groups: 3
-  Attribute Groups: 2
-
-  Total Components: 60
-
-Complexity: Moderate
-  Estimated generation time: < 500ms
-----
-====
-
-==== Generate SVG diagrams
-
-[[svg-generation]]
-===== Basic SVG generation
-
-[source,shell]
-----
-# Generate SVG diagram to file
-xseed svg schema.xsd -o diagram.svg
-
-# Output to stdout (useful for piping)
-xseed svg schema.xsd > diagram.svg
-
-# Generate with verbose progress output
-xseed svg schema.xsd -o diagram.svg --verbose
-
-# Force overwrite existing file
-xseed svg schema.xsd -o diagram.svg --force
-----
-
-===== SVG generation options
-
-* `-o, --output PATH` - Output file path (default: stdout)
-* `-e, --element ELEMENT_NAME` - Generate diagram for a single element
-* `--all-elements` - Generate diagrams for all elements in schema
-* `-d, --output-dir DIR` - Output directory for batch generation (required with --all-elements)
-* `-v, --verbose` - Enable verbose output with progress indicators
-* `-f, --force` - Overwrite output file without confirmation
-
-===== Single-element mode
-
-Xseed supports generating diagrams for individual elements instead of the entire schema. This is particularly useful for large schemas where you want to focus on specific elements or generate separate diagrams for each element.
-
-====== Generate diagram for a single element
-
-[source,shell]
-----
-# Generate diagram for a specific element
-xseed svg schema.xsd -e Order -o order.svg
-
-# With verbose output
-xseed svg schema.xsd -e Customer -o customer.svg --verbose
-----
-
-====== Batch generation for all elements
-
-Generate separate diagrams for every element in the schema:
-
-[source,shell]
-----
-# Generate diagrams for all elements
-xseed svg schema.xsd --all-elements -d output_directory
-
-# With verbose progress reporting
-xseed svg schema.xsd --all-elements -d diagrams --verbose
-----
-
-.Example: Batch generation output
+.Real-world example with UnitsML (54 elements)
 ====
 [source,shell]
 ----
-$ xseed svg unitsml-v1.0.xsd --all-elements -d tmp/diagrams --verbose
+$ xseed html unitsml-v1.0.xsd -o output/index.html --title "UnitsML Docs" --verbose
 
-  → Created output directory: tmp/diagrams
-  → Scanning schema for elements...
-Found 54 elements in schema
-
-  [1/54] Generating AmountOfSubstance...
-  →     ✓ Written to tmp/diagrams/AmountOfSubstance.svg
-  [2/54] Generating CodeListValue...
-  →     ✓ Written to tmp/diagrams/CodeListValue.svg
-  ...
-
-✓ Batch generation complete
-  Successfully generated: 54/54 diagrams
-  Output directory: tmp/diagrams
-  →   Total time: 0.67s
-  →   Average time per element: 0.012s
-----
-====
-
-====== Benefits of single-element mode
-
-* **Focused documentation**: Generate targeted diagrams for specific elements
-* **Performance**: Faster generation for individual elements
-* **Organization**: Separate files for each element in large schemas
-* **Always-inline types**: Types are always expanded inline (no type references)
-* **Batch processing**: Generate complete element diagram libraries
-
-===== Interactive features
-
-When generating to a file, Xseed provides:
-
-* File validation (checks existence and extension)
-* Output directory creation (automatic)
-* Overwrite protection (prompts unless --force is used)
-* Progress indicators (with --verbose)
-* Timing information (with --verbose)
-* Color-coded status messages
-
-.Example: Verbose SVG generation
-====
-[source,shell]
-----
-$ xseed svg large-schema.xsd -o output.svg --verbose
-
-  → Parsing XSD schema: large-schema.xsd
-  → Parser initialized successfully
-  → Generating SVG diagram...
+  → Creating HTML generator for: unitsml-v1.0.xsd
+  → HTML generator initialized
+  → Generating HTML documentation...
     ✓ Complete
-✓ SVG diagram generated: output.svg
-  → Generation completed in 0.157s
+✓ HTML documentation generated: output/index.html
+  → Generation completed in 0.341s
+
+# Generated files:
+#   output/index.html               (752KB HTML)
+#   output/diagrams/Unit.svg        (54 SVG files, one per element)
+#   output/diagrams/Quantity.svg
+#   output/diagrams/Prefix.svg
+#   ... (and 51 more)
+
+$ open output/index.html
 ----
+
+The HTML automatically includes all 54 SVG diagrams with proper `<object>` tags.
 ====
-
-[[html-documentation]]
-==== Generate HTML documentation
-
-[source,shell]
-----
-# Generate HTML documentation
-xseed html schema.xsd -o documentation.html
-
-# With custom title
-xseed html schema.xsd -o docs.html --title "My Schema Documentation"
-
-# With verbose output
-xseed html schema.xsd -o docs.html --verbose
-
-# All CLI options
-xseed html schema.xsd \
-  --output docs.html \
-  --title "Custom Title" \
-  --css https://example.com/custom.css \
-  --force \
-  --verbose
-----
-
-=== Programmatic API
-
-==== XSD Parser
-
-===== General
-
-The XSD Parser is a core shared component that extracts schema components and
-metadata from XML Schema Definition (XSD) files using Nokogiri with strict
-validation.
-
-The parser provides access to:
-
-* Schema metadata (target namespace, version, element form defaults)
-* Global elements, complex types, and simple types
-* Groups and attribute groups
-* Namespace mappings
-* Documentation and annotations
-* Import and include declarations
-
-===== Basic usage
-
-[source,ruby]
-----
-require "xseed"
-
-# Parse an XSD file
-parser = Xseed::Parser::XsdParser.new("schema.xsd")
-
-# Access schema metadata
-puts parser.target_namespace
-puts parser.element_form_default
-puts parser.schema_version
-
-# Extract components
-elements = parser.elements
-types = parser.types
-complex_types = parser.complex_types
-simple_types = parser.simple_types
-groups = parser.groups
-
-# Get namespace mappings
-namespaces = parser.namespaces
-
-# Extract documentation
-doc = parser.documentation
-element_doc = parser.element_documentation("ElementName")
-type_doc = parser.type_documentation("TypeName")
-----
-
-===== Error handling
-
-The parser includes comprehensive error handling:
-
-[source,ruby]
-----
-begin
-  parser = Xseed::Parser::XsdParser.new("schema.xsd")
-rescue Xseed::ParserError => e
-  puts "Parser error: #{e.message}"
-rescue Errno::ENOENT => e
-  puts "File not found: #{e.message}"
-end
-----
-
-===== Example output
-
-.Example: Parsing a simple XSD
-====
-[source,ruby]
-----
-parser = Xseed::Parser::XsdParser.new("person.xsd")
-
-puts "Target Namespace: #{parser.target_namespace}"
-# => Target Namespace: http://example.com/person
-
-puts "Elements:"
-parser.elements.each do |element|
-  name = element["name"]
-  type = element["type"]
-  puts "  - #{name} (#{type})"
-end
-# => Elements:
-#      - person (tns:PersonType)
-#      - contact (tns:ContactType)
-
-puts "Complex Types:"
-parser.complex_types.each do |type|
-  puts "  - #{type['name']}"
-end
-# => Complex Types:
-#      - PersonType
-#      - ContactType
-----
-====
-
-==== SVG Generator
-
-===== General
-
-The SVG generator creates visual representations of XML Schema structures with:
-
-* Hierarchical tree layout with automatic positioning
-* Clear parent-child relationships via connector lines
-* Differentiated symbol types (14 distinct types)
-* Color-coded visualization for different XSD components
-* Embedded CSS styling
-* Hover effects and tooltips with documentation
-* Valid, standards-compliant SVG output
-
-===== Architecture
-
-The SVG generation workflow:
-
-[source]
-----
-XSD File → Parser → Symbol Tree → Layout Engine → SVG Renderer → SVG Output
-----
-
-1. **Parser**: Extracts schema components with validation
-2. **Symbol Factory**: Builds hierarchical symbol tree
-3. **Layout Engine**: Positions symbols with collision avoidance
-4. **SVG Renderer**: Generates final SVG with styles and connectors
-
-===== Basic usage
-
-[source,ruby]
-----
-require "xseed"
-
-# Generate SVG for a schema
-generator = Xseed::Svg::SvgGenerator.new("schema.xsd")
-svg_content = generator.generate
-
-# Write to file
-generator.generate_file("diagram.svg")
-
-# With error handling
-begin
-  generator = Xseed::Svg::SvgGenerator.new("schema.xsd")
-  generator.generate_file("output.svg")
-rescue ArgumentError => e
-  puts "Validation error: #{e.message}"
-rescue Xseed::Svg::GenerationError => e
-  puts "Generation error: #{e.message}"
-end
-----
-
-===== Symbol types and colors
-
-The SVG generator uses distinct colors for different XSD components:
-
-* **Elements** - Blue (#4A90E2)
-* **Complex Types** - Purple (#7B68EE)
-* **Simple Types** - Green (#50C878)
-* **Sequences** - Gold (#FFD700)
-* **Choices** - Orange (#FF8C00)
-* **All Groups** - Light Coral (#FFA07A)
-* **Groups** - Violet (#9370DB)
-* **Attributes** - Teal (#20B2AA)
-* **Attribute Groups** - Medium Turquoise (#48D1CC)
-* **Restrictions** - Crimson (#DC143C)
-* **Extensions** - Hot Pink (#FF69B4)
-* **Unions** - Orchid (#BA55D3)
-* **Lists** - Plum (#DDA0DD)
-* **Any (Wildcards)** - Light Gray (#D3D3D3)
-
-===== Example output
-
-.Example: Generating SVG from a person schema
-====
-[source,ruby]
-----
-require "xseed"
-
-generator = Xseed::Svg::SvgGenerator.new("person.xsd")
-generator.generate_file("person_diagram.svg")
-
-puts "SVG diagram generated: person_diagram.svg"
-----
-
-The generated SVG includes:
-
-* Positioned symbols for all schema components
-* Hierarchical connectors showing relationships
-* Hover tooltips with documentation from annotations
-* Responsive layout that scales with content
-* Embedded styling for consistent rendering
-====
-
-==== HTML Generator
-
-===== General
-
-The HTML generator creates comprehensive documentation from XML Schema files with:
-
-* Schema properties table with metadata
-* Component listings (elements, types, groups)
-* Properties tables for each component
-* Type hierarchies and substitution groups
-* XML instance representation samples
-* Navigable table of contents
-* Responsive design with Bootstrap
-* Interactive JavaScript features
-
-===== Architecture
-
-The HTML generation workflow:
-
-[source]
-----
-XSD File → Parser → Config → HTML Generator → Renderers → HTML Output
-                                    ↓
-                    ┌───────────────┴───────────────┐
-                    │                               │
-            Navigation Renderer              Content Renderers
-                    │                               │
-            ┌───────┴───────┐         ┌─────────────┼─────────────┐
-            │               │         │             │             │
-        Sidebar TOC    Breadcrumbs  Properties  Instance    Type Hierarchy
-                                     Tables      Samples     Tables
-----
-
-1. **Parser**: Extracts schema components with validation
-2. **Config**: Configuration settings for generation
-3. **HTML Generator**: Orchestrates rendering process
-4. **Renderers**: Specialized renderers for different content types
-5. **Output**: Complete HTML5 document with embedded CSS/JS
-
-===== Basic usage
-
-[source,ruby]
-----
-require "xseed"
-
-# Basic generation
-generator = Xseed::Documentation::HtmlGenerator.new("schema.xsd")
-html = generator.generate
-File.write("output.html", html)
-
-# Custom configuration
-config = Xseed::Documentation::Config.new
-config.title = "My Schema"
-config.sort_by_component = true
-config.print_glossary = true
-
-generator = Xseed::Documentation::HtmlGenerator.new("schema.xsd", config)
-generator.generate_file("docs.html")
-----
-
-===== Configuration options
-
-[cols="1,1,3"]
-|===
-|Option |Type |Description
-
-|title
-|String
-|Documentation title (defaults to schema namespace)
-
-|sort_by_component
-|Boolean
-|Sort components alphabetically (default: false)
-
-|print_glossary
-|Boolean
-|Include glossary of XSD terms (default: true)
-
-|print_all_super_types
-|Boolean
-|Show all supertypes in hierarchy (default: true)
-
-|print_all_sub_types
-|Boolean
-|Show all subtypes in hierarchy (default: true)
-
-|external_css_url
-|String
-|URL to external CSS file
-
-|jquery_url
-|String
-|URL to jQuery library
-
-|bootstrap_url
-|String
-|URL to Bootstrap library
-|===
-
-===== Customization
-
-====== Custom CSS
-
-[source,ruby]
-----
-config = Xseed::Documentation::Config.new
-config.external_css_url = "https://example.com/custom.css"
-
-generator = Xseed::Documentation::HtmlGenerator.new("schema.xsd", config)
-----
-
-====== Custom JavaScript
-
-[source,ruby]
-----
-config = Xseed::Documentation::Config.new
-config.jquery_url = "https://example.com/jquery-3.7.0.js"
-config.bootstrap_url = "https://example.com/bootstrap.js"
-
-generator = Xseed::Documentation::HtmlGenerator.new("schema.xsd", config)
-----
-
-===== HTML output features
-
-The generated HTML includes:
-
-* **Responsive Navigation**: Collapsible sidebar with table of contents
-* **Schema Properties**: Metadata table with namespace, version, elements
-* **Component Sections**: Organized by type (elements, complex types, etc.)
-* **Properties Tables**: Detailed tables for each component showing:
-  - Name, type, and namespace information
-  - Occurrence constraints (minOccurs, maxOccurs)
-  - Documentation and annotations
-  - Default and fixed values
-* **Type Hierarchies**: Visual representation of inheritance chains
-* **Instance Samples**: XML examples showing how to use components
-* **Interactive Features**: Smooth scrolling, expand/collapse, tooltips
-* **Bootstrap Styling**: Professional appearance with responsive design
-
-===== Example output
-
-.Example: Generating HTML from a person schema
-====
-[source,ruby]
-----
-require "xseed"
-
-generator = Xseed::Documentation::HtmlGenerator.new("person.xsd")
-generator.generate_file("person_docs.html")
-
-puts "HTML documentation generated: person_docs.html"
-----
-
-The generated HTML includes:
-
-* Schema properties table showing namespace and version
-* Navigation sidebar with links to all components
-* Element section with PersonType details
-* Properties table showing all element attributes
-* XML instance samples demonstrating usage
-* Type hierarchy table (if applicable)
-* Glossary of XSD terminology
-====
-
-===== Performance
-
-HTML generation is optimized for large schemas:
-
-* Simple schemas (< 10 components): < 0.1 seconds
-* Medium schemas (10-50 components): < 0.5 seconds
-* Complex schemas (50-200 components): < 1 second
-* Very large schemas (> 500 components): < 5 seconds
-
-===== Examples
-
-See link:examples/html_generation.rb[examples/html_generation.rb] for more usage patterns including:
-
-* Basic HTML generation
-* Custom configuration
-* Style customization
-* Batch processing
-
-[[performance]]
-== Performance
-
-Xseed is designed for high performance with comprehensive benchmarking:
-
-=== Performance characteristics
-
-[cols="1,1,1"]
-|===
-|Schema Size |Component Count |Generation Time
-
-|Small
-|< 10 components
-|< 1ms
-
-|Medium
-|10-50 components
-|< 5ms
-
-|Large
-|50-200 components
-|< 50ms
-
-|Very Large
-|> 200 components
-|< 2000ms
-|===
-
-=== Memory usage
-
-* Small schemas: < 5MB
-* Medium schemas: < 10MB
-* Large schemas: < 50MB
-* No memory leaks detected in stress tests
-
-=== Optimization features
-
-* Efficient symbol tree building
-* Optimized layout algorithm with collision avoidance
-* Minimal object allocation
-* Fast XML parsing with Nokogiri
-
-[[error-handling]]
-== Error Handling
-
-Xseed includes comprehensive error handling with helpful messages:
-
-=== Common errors and solutions
-
-==== File not found
-
-[source]
-----
-✗ Error: Validation error: File not found: schema.xsd
-
-Solution: Check that the file path is correct and the file exists.
-----
-
-==== Invalid XML
-
-[source]
-----
-✗ Error: Parser error: Invalid XML syntax: ...
-
-Solution: Validate your XSD file with an XML validator.
-----
-
-==== Invalid XSD structure
-
-[source]
-----
-✗ Error: Validation error: Invalid XSD file: root element must be 'schema'
-
-Solution: Ensure the file is a valid XSD with <xs:schema> as root element.
-----
-
-==== Permission denied
-
-[source]
-----
-✗ Error: Permission denied: output.svg
-
-Solution: Check file permissions or use --force to overwrite.
-----
-
-=== Error recovery features
-
-* Graceful degradation for malformed schemas
-* Continues processing when encountering invalid elements
-* Provides placeholder for empty schemas
-* Handles missing documentation gracefully
-* Reports detailed error locations
-
-[[troubleshooting]]
-== Troubleshooting
-
-=== SVG not generating
-
-1. **Verify XSD is valid:**
-   ```
-   xseed info schema.xsd
-   ```
-
-2. **Check for errors with verbose mode:**
-   ```
-   xseed svg schema.xsd -o output.svg --verbose
-   ```
-
-3. **Test with a simple schema first**
-
-=== Output file not created
-
-1. **Check directory permissions**
-2. **Use --force to overwrite existing files**
-3. **Verify output path is writable**
-
-=== Performance issues
-
-1. **Check schema complexity:**
-   ```
-   xseed info large-schema.xsd
-   ```
-
-2. **For very large schemas (> 200 components):**
-   * Generation may take a few seconds
-   * Consider breaking into smaller modules
-
-=== Getting help
-
-1. **View command help:**
-   ```
-   xseed help [command]
-   ```
-
-2. **Enable verbose output:**
-   ```
-   xseed svg schema.xsd -o output.svg --verbose
-   ```
-
-3. **Check GitHub issues:**
-   https://github.com/metanorma/xseed/issues
-
-== Known Limitations
-
-=== Phase 1 (Current)
-
-* SVG generation only (HTML documentation in Phase 2)
-* Basic symbol layout (no custom positioning yet)
-* Limited styling customization
-* No interactive features in generated SVG
-
-=== Planned improvements
-
-* Custom styling options
-* Interactive SVG with expand/collapse
-* SVG optimization options
-* Batch processing support
-
-== Development Roadmap
-
-=== Phase 1: SVG Generation ✅ **COMPLETE - v1.0.0**
-
-[x] Project setup and foundation
-[x] XSD parser with strict validation
-[x] Symbol hierarchy (14 symbol types)
-[x] Layout calculation engine with collision avoidance
-[x] SVG rendering with embedded styles
-[x] Color-coded symbol differentiation
-[x] CLI with verbose mode and progress indicators
-[x] Comprehensive error handling
-[x] Performance optimization (< 50ms for complex schemas)
-[x] Test suite (337 tests, 87.63% coverage)
-[x] **100% parity with XSDVI** (15/15 tests passing)
-[x] Production-ready quality
-
-=== Phase 2: HTML Documentation (XS3P Port) ✅ **COMPLETE - v1.0.0**
-
-[x] Core foundation modules
-[x] Utility modules (strings, references, namespaces)
-[x] Rendering engine (CSS, JS, navigation)
-[x] Content generators (properties tables, instance samples)
-[x] Type hierarchies and substitution groups
-[x] Presentation layer (HTML document structure)
-[x] CLI integration (`xseed html` command)
-[x] Interactive features (TOC, smooth scroll)
-[x] Bootstrap responsive design
-[x] Comprehensive test suite (25 parity tests)
-[x] **100% parity with XS3P** (25/25 tests passing)
-[x] Production-ready quality
-
-=== v1.0.0 Release Status ✅ **PRODUCTION READY**
-
-**Achievement Summary:**
-
-* ✅ SVG Parity: 100% (15/15 tests, all fixtures)
-* ✅ HTML Parity: 100% (25/25 tests, all fixtures)
-* ✅ Overall Parity: 100% (exceeds 93% target)
-* ✅ Code Coverage: 87.63% (exceeds 85% target)
-* ✅ All Features: 21/21 implemented (P0+P1+P2)
-* ✅ Performance: All targets met or exceeded
-* ✅ Test Suite: 337 tests, 307 passing (91.1%)
-* ✅ Production Quality: Ready for general use
-
-**Known Issues (Non-Blocking):**
-
-* 30 test failures are mostly external parser dependency issues
-* Minor SVG visual refinements in progress
-* Does not affect production functionality
-
-=== Phase 3: Advanced Features (Planned for v1.1+)
-
-* Interactive SVG diagrams in HTML
-* Advanced customization options
-* Batch processing support
-* Plugin architecture for extensions
-
-== Development
-
-After checking out the repo, run `bundle install` to install dependencies.
-
-Run tests with:
-
-[source,shell]
-----
-# Run all tests
-bundle exec rspec
-
-# Run with coverage report
-bundle exec rspec --format documentation
-
-# Run performance benchmarks
-bundle exec rspec spec/performance/
-
-# Run specific test file
-bundle exec rspec spec/unit/svg/svg_generator_spec.rb
-----
-
-Run linting with:
-
-[source,shell]
-----
-bundle exec rubocop
-
-# Auto-fix issues
-bundle exec rubocop -a
-----
-
-To install this gem onto your local machine:
-
-[source,shell]
-----
-bundle exec rake install
-----
-
-== Contributing
-
-Bug reports and pull requests are welcome on GitHub at
-https://github.com/metanorma/xseed.
-
-Please include:
-
-* Clear description of the issue or feature
-* Steps to reproduce (for bugs)
-* Example XSD files (if relevant)
-* Expected vs actual behavior
-
-== License
-
-The gem is available as open source under the terms of the
-link:LICENSE.adoc[BSD-2-Clause License].
-
-== Credits
-
-Xseed is a Ruby port of:
-
-* **XSDVI** - https://github.com/dgautier/xsdvi
-* **XS3P** - http://xml.figleaf.com/xsd/xs3p/
-
-Developed by Ribose Inc. for the Metanorma project.
+</commands>
+* `-o, --output PATH` - Output HTML file path (required)
+* `-t, --title TEXT` - Custom documentation title
+* `-d, --diagrams-dir DIR` - Custom SVG directory name (default: "diagrams")
+* `--css PATH` - External CSS file URL
+* `-v, --verbose` - Show detailed progress
+* `-f, --force` - Overwrite without confirmation
+
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction}
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction}
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction}
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction}
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction}
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction}
+}
+import@<interface>
+QPushButton{
+    {name}:
+    {instruction}
+}
+/**
+ * Define a QPushButton class
+ * @class {class_name}
+ * @burnsPanel {bool}
+ * @order {number}
+ * @classname {string}
+ * @compName {string}
+ * @instruction {string}
+ * @defaultValues {any}
+ * @interface {any}
+ */
+class ${currentSymbol}(${interface}) {
+:
+//////////////////////////////////////
+private:
+signals:
+/**
+ * Construct a QPushButton with the given panel
+ * @constructor
+ * @return {void}
+ * @param {QObject} parent -
+ * @description Constructor that will be called from Panel
+ */
+${currentSymbol} Sweeper(QWidget* parent) : QPushButton(parent){
+    this->settings.definition$is_GeneratableNewPanel = true;
+    this->settings.definition$is_BurnsPanel = ${classdata.burnsPanel};
+    this->settings.definition$order = ${classdata.order};
+    this->settings.definition.className = "${className}";
+    this->settings.definition.compName = "${classCompName}";
+    this->settings.definition.instructions = "${instruction}";
+    this->settings.definition.defaultValue = varObject${functionSeparator}${className};
+    this->settings.definition.defaults.push_back(varObject(${functionSeparator}"${className}"));
+    this->settings.definition.interface = ${interface};
+    //this->setParent(parent);
+}
+}

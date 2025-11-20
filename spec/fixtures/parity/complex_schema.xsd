@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://example.com/complex"
+    targetNamespace="http://example.com/complex"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified">
+
+  <xs:annotation>
+    <xs:documentation>
+      Complex test schema with attributes, nested types, and various patterns.
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Root element with complex type -->
+  <xs:element name="Order" type="OrderType">
+    <xs:annotation>
+      <xs:documentation>Root order element containing customer and items.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <!-- Complex type with attributes and sequence -->
+  <xs:complexType name="OrderType">
+    <xs:annotation>
+      <xs:documentation>Order type with customer info and line items.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="customer" type="CustomerType">
+        <xs:annotation>
+          <xs:documentation>Customer information.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="items" type="ItemListType">
+        <xs:annotation>
+          <xs:documentation>List of items in the order.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique order identifier.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="date" type="xs:date" use="optional">
+      <xs:annotation>
+        <xs:documentation>Order date.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Nested complex type -->
+  <xs:complexType name="CustomerType">
+    <xs:annotation>
+      <xs:documentation>Customer with name and contact details.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="name" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>Customer name.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="email" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Optional customer email.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Complex type with unbounded elements -->
+  <xs:complexType name="ItemListType">
+    <xs:annotation>
+      <xs:documentation>Container for multiple line items.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="item" type="ItemType" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>Individual line item.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Complex type with attributes -->
+  <xs:complexType name="ItemType">
+    <xs:annotation>
+      <xs:documentation>Line item with product and quantity.</xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="sku" type="xs:string" use="required">
+          <xs:annotation>
+            <xs:documentation>Product SKU code.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="quantity" type="xs:int" default="1">
+          <xs:annotation>
+            <xs:documentation>Quantity ordered (default: 1).</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Simple type with restriction -->
+  <xs:simpleType name="StatusType">
+    <xs:annotation>
+      <xs:documentation>Order status enumeration.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="pending"/>
+      <xs:enumeration value="shipped"/>
+      <xs:enumeration value="delivered"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

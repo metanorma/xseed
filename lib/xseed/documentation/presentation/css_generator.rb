@@ -35,6 +35,7 @@ module Xseed
               line-height: 1.4em;
               color: -internal-root-color;
               background-color: #ffffff;
+              font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
             }
 
             body main {
@@ -181,8 +182,7 @@ module Xseed
             }
 
             #toggle {
-              margin-left: -4em;
-              margin-top: -2em;
+              margin-top: 0;
             }
 
             @media screen and (min-width: 768px) {

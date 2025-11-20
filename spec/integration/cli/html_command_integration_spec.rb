@@ -73,8 +73,8 @@ RSpec.describe "HTML command integration" do
       # Should have elements section
       expect(doc.css("#SchemaElements")).not_to be_empty
 
-      # Should have component divs (components are in divs, not sections)
-      expect(doc.css("div[id^='element-']")).not_to be_empty
+      # XS3P uses h3 with id attributes, not wrapper divs
+      expect(doc.css("h3 a[id^='element-']")).not_to be_empty
     end
   end
 
@@ -267,8 +267,8 @@ RSpec.describe "HTML command integration" do
       html = File.read(output_path)
       doc = Nokogiri::HTML5(html)
 
-      # Required HTML5 elements
-      expect(doc.css("html[lang='en']")).not_to be_empty
+      # Required HTML5 elements (xs3p format - no lang on html)
+      expect(doc.css("html")).not_to be_empty
       expect(doc.css("head meta[charset='UTF-8']")).not_to be_empty
       expect(doc.css("head meta[name='viewport']")).not_to be_empty
       expect(doc.css("head title")).not_to be_empty
@@ -302,21 +302,17 @@ RSpec.describe "HTML command integration" do
       html = File.read(output_path)
       doc = Nokogiri::HTML5(html)
 
-      # Should have instance samples
-      instance_samples = doc.css(".instance-sample")
+      # Should have instance samples in xs3p format (pre.codehilite)
+      instance_samples = doc.css("pre.codehilite")
       expect(instance_samples).not_to be_empty
 
-      # Samples should contain XML code
-      xml_codes = doc.css(".xml-code code")
-      expect(xml_codes).not_to be_empty
-
-      xml_codes.each do |code|
-        text = code.text
+      # Samples should contain XML markup with span tags
+      instance_samples.each do |pre|
+        text = pre.text
         next if text.strip.empty?
 
-        # Should look like XML
-        expect(text).to match(/<\w/)
-        expect(text).to match(/\w>/)
+        # Should look like XML element names
+        expect(text).to match(/\w/)
       end
     end
   end

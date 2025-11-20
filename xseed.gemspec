@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Ribose"]
   spec.email         = ["open.source@ribose.com"]
 
-  spec.summary       = "Ruby port of XSDVI and XS3P for XSD documentation"
-  spec.description   = "Generate interactive SVG diagrams and HTML documentation from XML Schema (XSD) files"
+  spec.summary       = "Ruby XSD documentation generator with unified SVG and HTML output"
+  spec.description   = "Generate comprehensive XSD documentation with SVG diagrams (via xsdvi gem) and HTML reference (XS3P port)"
   spec.homepage      = "https://github.com/metanorma/xseed"
   spec.license       = "BSD-2-Clause"
 
@@ -35,4 +35,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "lutaml-xsd", "~> 1.0"
   spec.add_dependency "nokogiri", "~> 1.16"
   spec.add_dependency "thor", "~> 1.3"
+  spec.add_dependency "xsdvi", "~> 1.0"
 end

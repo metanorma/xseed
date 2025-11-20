@@ -41,7 +41,7 @@ module Xseed
       # @return [String] Generated HTML content
       def generate
         builder = Nokogiri::HTML::Builder.new do |html|
-          html.html(lang: "en") do
+          html.html do
             generate_head(html)
             html.body do
               generate_body(html)
@@ -49,22 +49,199 @@ module Xseed
             end
           end
         end
+
         # Replace HTML4 DOCTYPE with HTML5 DOCTYPE
-        builder.to_html.sub(
+        html_output = builder.to_html.sub(
           /<!DOCTYPE[^>]+>/,
           "<!DOCTYPE html>"
         )
+
+        # Convert HTML void hr tags to XML-style (xs3p compliance)
+        html_output.gsub!(/<hr>/, '<hr></hr>')
       end
 
       # Generate HTML documentation and write to file
       #
       # @param output_path [String] Path to output HTML file
       def generate_file(output_path)
+        # Auto-generate SVG diagrams if enabled
+        generate_svg_diagrams(output_path) if @config.print_diagrams
+
         html_content = generate
         File.write(output_path, html_content)
       end
 
       private
+
+      # Compactify HTML to match xs3p compact format
+      # Removes whitespace between tags while preserving text content
+      #
+      # @param html [String] HTML content
+      # @return [String] Compactified HTML
+      def compactify_html(html)
+        # Remove only newlines and indentation whitespace between tags
+        # This matches xs3p's compact inline format
+        html.gsub(/>\n\s*</, '><')
+      end
+
+      # Generate modal popup divs for element/attribute documentation (xs3p pattern)
+      #
+      # @param html [Nokogiri::HTML::Builder] HTML builder
+      def generate_modal_popups(html)
+        modal_counter = 0
+
+        # Helper to generate a single modal
+        generate_modal = lambda do |component_name, component_type, doc_text|
+          next unless doc_text && !doc_text.strip.empty?
+
+          modal_counter += 1
+          modal_id = "id#{modal_counter}"
+
+          html.div(class: "modal fade #{component_name}",
+                   id: "#{modal_id}-popup",
+                   tabindex: "-1",
+                   role: "dialog",
+                   "aria-hidden": "true") do
+            html.div(class: "modal-header") do
+              html.button(type: "button",
+                         class: "close",
+                         "data-dismiss": "modal",
+                         "aria-hidden": "true") { html.text "×" }
+              html.h4(class: "modal-title", id: "#{modal_id}-label") do
+                html.text "#{component_type} #{component_name}"
+              end
+            end
+            html.div(class: "modal-body") do
+              html.div(class: "annotation documentation",
+                      id: "wdoc-#{modal_id}-hidden") do
+                html.div(class: "hidden", id: "#{modal_id}-hidden-doc-raw") do
+                  html.text doc_text.strip
+                end
+                html.div(class: "xs3p-doc", id: "#{modal_id}-hidden-doc") do
+                  html.text " "
+                end
+              end
+            end
+          end
+        end
+
+        # Generate modals for all elements
+        parser.elements.each do |element|
+          element_name = element["name"]
+          next unless element_name
+
+          doc = extract_documentation(element)
+          generate_modal.call(element_name, "Element", doc)
+
+          # Check for nested elements in inline complexType
+          complex_type = element.at_xpath("xs:complexType", "xs" => "http://www.w3.org/2001/XMLSchema")
+          if complex_type
+            # Get sequence/choice/all children
+            %w[sequence choice all].each do |group_type|
+              group = complex_type.at_xpath("xs:#{group_type}", "xs" => "http://www.w3.org/2001/XMLSchema")
+              next unless group
+
+              group.xpath(".//xs:element", "xs" => "http://www.w3.org/2001/XMLSchema").each do |nested_elem|
+                nested_name = nested_elem["name"]
+                next unless nested_name
+
+                nested_doc = extract_documentation(nested_elem)
+                generate_modal.call(nested_name, "Element", nested_doc)
+              end
+
+              # Check for attributes
+              group.xpath(".//xs:attribute", "xs" => "http://www.w3.org/2001/XMLSchema").each do |attr|
+                attr_name = attr["name"]
+                next unless attr_name
+
+                attr_doc = extract_documentation(attr)
+                generate_modal.call(attr_name, "Attribute", attr_doc)
+              end
+            end
+
+            # Direct attributes on complexType
+            complex_type.xpath("xs:attribute", "xs" => "http://www.w3.org/2001/XMLSchema").each do |attr|
+              attr_name = attr["name"]
+              next unless attr_name
+
+              attr_doc = extract_documentation(attr)
+              generate_modal.call(attr_name, "Attribute", attr_doc)
+            end
+          end
+        end
+
+        # Generate modals for complex types
+        parser.complex_types.each do |type|
+          type_name = type["name"]
+          next unless type_name
+
+          # Check for nested elements
+          %w[sequence choice all].each do |group_type|
+            group = type.at_xpath(".//xs:#{group_type}", "xs" => "http://www.w3.org/2001/XMLSchema")
+            next unless group
+
+            group.xpath(".//xs:element", "xs" => "http://www.w3.org/2001/XMLSchema").each do |nested_elem|
+              nested_name = nested_elem["name"]
+              next unless nested_name
+
+              nested_doc = extract_documentation(nested_elem)
+              generate_modal.call(nested_name, "Element", nested_doc)
+            end
+          end
+
+          # Attributes
+          type.xpath(".//xs:attribute", "xs" => "http://www.w3.org/2001/XMLSchema").each do |attr|
+            attr_name = attr["name"]
+            next unless attr_name
+
+            attr_doc = extract_documentation(attr)
+            generate_modal.call(attr_name, "Attribute", attr_doc)
+          end
+        end
+      end
+
+      # Extract documentation from XSD node
+      def extract_documentation(node)
+        doc_node = node.at_xpath("xs:annotation/xs:documentation", "xs" => "http://www.w3.org/2001/XMLSchema")
+        doc_node&.text
+      end
+
+      # Auto-generate SVG diagrams for all elements using xsdvi
+      #
+      # @param html_output_path [String] Path to HTML output file
+      def generate_svg_diagrams(html_output_path)
+        require "xsdvi"
+        require "fileutils"
+
+        # Determine diagrams directory relative to HTML output
+        output_dir = File.dirname(html_output_path)
+        diagrams_path = File.join(output_dir, @config.diagrams_dir)
+        FileUtils.mkdir_p(diagrams_path)
+
+        # Generate SVG for each element
+        parser.elements.each do |element|
+          element_name = element["name"]
+          next unless element_name
+
+          svg_file = File.join(diagrams_path, "#{element_name}.svg")
+
+          # Use xsdvi Ruby API
+          writer = Xsdvi::Utils::Writer.new(svg_file)
+          builder = Xsdvi::Tree::Builder.new
+          handler = Xsdvi::XsdHandler.new(builder)
+          handler.root_node_name = element_name
+          handler.one_node_only = true
+          handler.process_file(@xsd_file)
+
+          root = builder.root
+          generator = Xsdvi::SVG::Generator.new(writer)
+          generator.hide_menu_buttons = true
+          generator.draw(root)
+        end
+      rescue LoadError
+        # xsdvi not available, skip SVG generation
+        warn "Warning: xsdvi gem not available, skipping SVG generation"
+      end
 
       # Generate HTML head section
       #
@@ -84,6 +261,10 @@ module Xseed
       #
       # @param html [Nokogiri::HTML::Builder] HTML builder
       def generate_styles(html)
+        # Load Bootstrap CSS first (needed for modal styling)
+        bootstrap_url = @config.bootstrap_url || "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1"
+        html.link(rel: "stylesheet", href: "#{bootstrap_url}/css/bootstrap.min.css")
+
         css_gen = Presentation::CssGenerator.new(@config)
 
         if css_gen.external_css_url
@@ -129,6 +310,9 @@ module Xseed
       #
       # @param html [Nokogiri::HTML::Builder] HTML builder
       def generate_body(html)
+        # Generate modal popups FIRST (xs3p pattern)
+        generate_modal_popups(html)
+
         # Toggle button as direct child of body
         html.div(id: "toggle") do
           html.span "<"
@@ -159,10 +343,10 @@ module Xseed
       def generate_component_sections(html)
         # Section 2: Global Elements
         if parser.elements.any?
-          html.section(id: "global-elements", class: "schema-section") do
+          html.section(id: "SectionSchemaElements", class: "schema-section") do
             html.h2 do
               html.a(id: "SchemaElements") {}
-              html.text "Global Elements"
+              html.text "Elements"
             end
             parser.elements.each do |element|
               generate_component_content(html, element, "Element")
@@ -170,26 +354,44 @@ module Xseed
           end
         end
 
-        # Section 3: Global Types (Complex and Simple)
-        types = parser.complex_types + parser.simple_types
-        if types.any?
-          html.section(id: "global-types", class: "schema-section") do
-            html.h2 "Global Types"
-            types.each do |type|
-              type_label = type.name == "complexType" ? "Complex Type" : "Simple Type"
-              generate_component_content(html, type, type_label)
+        # Section 3: Complex Types
+        complex_types = parser.complex_types
+        if complex_types.any?
+          html.section(id: "SectionSchemaComplexTypes", class: "schema-section") do
+            html.h2 do
+              html.a(id: "SchemaComplexTypes") {}
+              html.text "Complex Types"
+            end
+            complex_types.each do |type|
+              generate_component_content(html, type, "Complex Type")
             end
           end
         end
 
-        # Section 4: Groups and Attributes
-        groups_attrs = parser.groups + parser.attribute_groups
-        if groups_attrs.any?
-          html.section(id: "groups-attributes", class: "schema-section") do
-            html.h2 "Global Groups and Attributes"
-            groups_attrs.each do |component|
-              type_label = component.name == "group" ? "Model Group" : "Attribute Group"
-              generate_component_content(html, component, type_label)
+        # Section 3b: Simple Types
+        simple_types = parser.simple_types
+        if simple_types.any?
+          html.section(id: "SectionSchemaSimpleTypes", class: "schema-section") do
+            html.h2 do
+              html.a(id: "SchemaSimpleTypes") {}
+              html.text "Types"
+            end
+            simple_types.each do |type|
+              generate_component_content(html, type, "Simple Type")
+            end
+          end
+        end
+
+        # Section 4: Attribute Groups
+        attr_groups = parser.attribute_groups
+        if attr_groups.any?
+          html.section(id: "SectionSchemaAttributeGroups", class: "schema-section") do
+            html.h2 do
+              html.a(id: "SchemaAttributeGroups") {}
+              html.text "Attribute Groups"
+            end
+            attr_groups.each do |component|
+              generate_component_content(html, component, "Attribute Group")
             end
           end
         end
@@ -254,7 +456,9 @@ module Xseed
             end
             html.dd(class: "") do
               if (target_ns = schema["targetNamespace"])
-                html.text target_ns
+                html.span(class: "targetNS") do
+                  html.text target_ns
+                end
               else
                 html.text "None"
               end
@@ -267,9 +471,19 @@ module Xseed
                 html.li do
                   html.text "Global element and attribute declarations belong to this schema's target namespace."
                 end
-                html.li do
-                  html.text "By default, local element declarations have no namespace."
+
+                # Check elementFormDefault
+                element_form = schema["elementFormDefault"]
+                if element_form == "qualified"
+                  html.li do
+                    html.text "By default, local element declarations belong to this schema's target namespace."
+                  end
+                else
+                  html.li do
+                    html.text "By default, local element declarations have no namespace."
+                  end
                 end
+
                 html.li do
                   html.text "By default, local attribute declarations have no namespace."
                 end
@@ -314,7 +528,7 @@ module Xseed
         end
       end
 
-      # Generate component content as div (not section) with all generators
+      # Generate component content as direct children (not wrapped in div) per xs3p
       #
       # @param html [Nokogiri::HTML::Builder] HTML builder
       # @param component [Nokogiri::XML::Element] Schema component
@@ -324,47 +538,46 @@ module Xseed
         return unless component_name
 
         component_id = generate_component_id(component_type, component_name)
-        component_class = "component #{component_type.downcase.tr(' ', '-')}"
 
-        html.div(id: component_id, class: component_class) do
-          html.h3(class: "xs3p-subsection-heading") do
-            html.text "#{component_type}: "
-            html.strong component_name
-          end
-
-          # SVG diagram reference (if exists)
-          generate_svg_reference(html, component_name)
-
-          # Properties definition lists (no heading) - generates 1-3 DLs per component
-          props_gen = Generators::PropertiesTableGenerator.new(component,
-                                                               @config)
-          props_gen.generate.each { |dl_html| html << dl_html }
-
-          # Hierarchy table (if applicable)
-          hier_gen = Generators::HierarchyTableGenerator.new(
-            component,
-            @parser,
-            @config
-          )
-          hierarchy_html = hier_gen.generate
-          html << hierarchy_html if hierarchy_html
-
-          # Instance sample in callout block (skip for simple types and notations)
-          unless %w[simpleType notation].include?(component.name)
-            generate_instance_representation_callout(html, component)
-          end
-
-          # Schema component representation in callout block
-          generate_schema_component_callout(html, component)
-
-          # Back to top link and separator
-          html.div(style: "text-align: right; clear: both;") do
-            html.a(href: "#top", title: "Go to top of page") do
-              html.span(class: "glyphicon glyphicon-chevron-up") { html.text " " }
-            end
-          end
-          html.hr
+        # XS3P does NOT wrap components in divs - content flows directly
+        html.h3(class: "xs3p-subsection-heading") do
+          html.text "#{component_type}: "
+          html.a(id: component_id) {}
+          html.strong component_name
         end
+
+        # SVG diagram reference (if exists)
+        generate_svg_reference(html, component_name)
+
+        # Properties definition lists (no heading) - generates 1-3 DLs per component
+        props_gen = Generators::PropertiesTableGenerator.new(component,
+                                                            @config)
+        props_gen.generate.each { |dl_html| html << dl_html }
+
+        # Hierarchy table (if applicable)
+        hier_gen = Generators::HierarchyTableGenerator.new(
+          component,
+          @parser,
+          @config
+        )
+        hierarchy_html = hier_gen.generate
+        html << hierarchy_html if hierarchy_html
+
+        # Instance sample in callout block (skip for simple types and notations)
+        unless %w[simpleType notation].include?(component.name)
+          generate_instance_representation_callout(html, component)
+        end
+
+        # Schema component representation in callout block
+        generate_schema_component_callout(html, component)
+
+        # Back to top link and separator
+        html.div(style: "text-align: right; clear: both;") do
+          html.a(href: "#top", title: "Go to top of page") do
+            html.span(class: "glyphicon glyphicon-chevron-up") { html.text " " }
+          end
+        end
+        html.hr
       end
 
       # Generate SVG diagram reference
@@ -444,8 +657,19 @@ module Xseed
       # @param component [Nokogiri::XML::Element] Schema component
       # @return [String] Formatted XSD
       def format_xsd_component(component)
+        # Special handling for schema element - collapse children
+        if component.name == "schema"
+          return format_collapsed_schema(component)
+        end
+
+        # Clone component to avoid modifying original
+        comp_copy = component.dup
+
+        # Remove annotation children (xs3p compliance)
+        comp_copy.xpath(".//xsd:annotation", "xsd" => "http://www.w3.org/2001/XMLSchema").each(&:remove)
+
         # Get the component's XML representation
-        xml = component.to_xml(indent: 3)
+        xml = comp_copy.to_xml(indent: 3, indent_text: "   ")
 
         # Add syntax highlighting classes
         xml.gsub!(/<(\/?)([\w:]+)([^>]*)>/) do
@@ -455,27 +679,91 @@ module Xseed
 
           # Highlight tag names
           highlighted = "<span class=\"nt\">&lt;#{tag_open}"
-          highlighted += "<a href=\"#ns_#{tag_name.split(':').first}\" " \
-                        "title=\"Find out namespace of '#{tag_name.split(':').first}' prefix\">" \
-                        "#{tag_name}</a>" if tag_name.include?(":")
-          highlighted += tag_name unless tag_name.include?(":")
+          if tag_name.include?(":")
+            prefix = tag_name.split(':').first
+            local_name = tag_name.split(':').last
+            highlighted += "<a href=\"#ns_#{prefix}\" title=\"Find out namespace of '#{prefix}' prefix\">#{prefix}</a>:#{local_name}"
+          else
+            highlighted += tag_name
+          end
+
+          highlighted += "</span>"
 
           # Highlight attributes
           if attributes && !attributes.empty?
             attributes.gsub!(/(\w+)="([^"]*)"/) do
               attr_name = Regexp.last_match(1)
               attr_value = Regexp.last_match(2)
-              " <span class=\"na\">#{attr_name}=</span>" \
-              "<span class=\"s\">\"#{attr_value}\"</span>"
+
+              # Check if attribute value is a type reference
+              if attr_name == "type" && !attr_value.include?(":")
+                # Local type reference - add link
+                attr_value_html = "<span class=\"type\"><a title='Jump to \"#{attr_value}\" type definition.' href=\"#type_#{attr_value}\">#{attr_value}</a></span>"
+                " <span class=\"na\">#{attr_name}=</span><span class=\"s\">\"#{attr_value_html}\"</span>"
+              elsif attr_name.include?(":") || ["ref", "base"].include?(attr_name)
+                # Potential reference - add link if local
+                local_name = attr_value.include?(":") ? attr_value.split(":").last : attr_value
+                if attr_name == "ref" || attr_name == "base"
+                  attr_value_html = "<a title='Jump to \"#{local_name}\" #{attr_name == 'base' ? 'type' : 'element'} definition.' href=\"##{attr_name == 'base' ? 'type' : 'element'}_#{local_name}\">#{attr_value}</a>"
+                  " <span class=\"na\">#{attr_name}=</span><span class=\"s\">\"#{attr_value_html}\"</span>"
+                else
+                  " <span class=\"na\">#{attr_name}=</span><span class=\"s\">\"#{attr_value}\"</span>"
+                end
+              else
+                " <span class=\"na\">#{attr_name}=</span><span class=\"s\">\"#{attr_value}\"</span>"
+              end
             end
             highlighted += attributes
           end
 
-          highlighted += "&gt;</span>"
+          highlighted += "<span class=\"nt\">&gt;</span>"
           highlighted
         end
 
         xml
+      end
+
+      # Format collapsed schema component (xs3p compliance)
+      #
+      # @param schema [Nokogiri::XML::Element] Schema element
+      # @return [String] Formatted collapsed XSD
+      def format_collapsed_schema(schema)
+        result = []
+
+        # Opening tag with attributes
+        tag_parts = ["<span class=\"nt\">&lt;"]
+        tag_parts << "<a href=\"#ns_xsd\" title=\"Find out namespace of 'xsd' prefix\">xsd</a>:schema</span>"
+
+        # Add schema attributes
+        schema.attributes.each do |name, attr|
+          tag_parts << " <span class=\"na\">#{name}=</span><span class=\"s\">\"#{attr.value}\"</span>"
+        end
+        tag_parts << "<span class=\"nt\">&gt;</span>"
+
+        result << tag_parts.join("")
+
+        # Show first import/include child if exists
+        first_child = schema.children.find { |c| c.element? && %w[import include].include?(c.name) }
+        if first_child
+          # Format just the first import/include line
+          child_line = "   <span class=\"nt\">&lt;"
+          child_line += "<a href=\"#ns_xsd\" title=\"Find out namespace of 'xsd' prefix\">xsd</a>:#{first_child.name}</span>"
+
+          first_child.attributes.each do |name, attr|
+            child_line += " <span class=\"na\">#{name}=</span><span class=\"s\">\"#{attr.value}\"</span>"
+          end
+          child_line += "<span class=\"nt\">/&gt;</span>"
+
+          result << child_line
+        end
+
+        # Collapsed content placeholder
+        result << "<span class=\"scContent\">...</span>"
+
+        # Closing tag
+        result << "<span class=\"nt\">&lt;/<a href=\"#ns_xsd\" title=\"Find out namespace of 'xsd' prefix\">xsd</a>:schema&gt;</span>"
+
+        result.join("\n")
       end
 
       # Help content for instance representation

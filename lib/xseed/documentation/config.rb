@@ -26,6 +26,9 @@ module Xseed
       # If true, includes SVG diagram references in component sections
       attr_accessor :print_diagrams
 
+      # Directory for auto-generated SVG diagrams (relative to HTML output directory)
+      attr_accessor :diagrams_dir
+
       # If true, prints prefix matching namespace of schema components
       # in XML Instance Representation tables
       attr_accessor :print_ns_prefixes
@@ -62,6 +65,7 @@ module Xseed
         @print_all_sub_types = true
         @print_glossary = true
         @print_diagrams = true
+        @diagrams_dir = "diagrams"
         @print_ns_prefixes = true
         @search_included_schemas = false
         @search_imported_schemas = false
@@ -81,6 +85,7 @@ module Xseed
           print_all_sub_types: @print_all_sub_types,
           print_glossary: @print_glossary,
           print_diagrams: @print_diagrams,
+          diagrams_dir: @diagrams_dir,
           print_ns_prefixes: @print_ns_prefixes,
           search_included_schemas: @search_included_schemas,
           search_imported_schemas: @search_imported_schemas,

@@ -38,12 +38,8 @@ module Xseed
         # @return [String] HTML markup
         def generate
           builder = Nokogiri::XML::Builder.new do |xml|
-            xml.div(class: "instance-sample xml-code") do
-              xml.pre(class: "codehilite") do
-                xml.code(class: "language-xml") do
-                  xml << generate_xml_sample_with_highlighting
-                end
-              end
+            xml.pre(class: "codehilite") do
+              xml << generate_xml_sample_with_highlighting
             end
           end
           builder.doc.root.to_html
