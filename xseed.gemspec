@@ -33,7 +33,6 @@ Gem::Specification.new do |spec|
   # Runtime dependencies
   spec.add_dependency "lutaml-model", "~> 0.7"
   spec.add_dependency "lutaml-xsd", "~> 1.0"
-  spec.add_dependency "nokogiri", "~> 1.16"
   spec.add_dependency "thor", "~> 1.3"
   spec.add_dependency "xsdvi", "~> 1.0"
 end

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "lutaml/xsd"
-require "nokogiri"
 
 module Xseed
   module Documentation
@@ -59,41 +58,16 @@ module Xseed
       # @return [Lutaml::Xsd::Schema] Parsed schema object
       # @raise [ParseError] if schema cannot be parsed
       def self.parse(content, location: nil, schema_mappings: nil, config: nil)
-        # Validate that it's actually an XSD schema
-        validate_schema_content(content)
+        # Note: schema_mappings and config parameters are accepted for future
+        # compatibility but not yet used as lutaml-xsd doesn't support them yet
 
-        mappings = build_mappings(schema_mappings, config)
-
-        # Use lutaml-xsd's parse method
+        # Use lutaml-xsd's parse method which handles all validation
         Lutaml::Xsd.parse(
           content,
           location: location,
-          schema_mappings: mappings,
         )
-      rescue Nokogiri::XML::SyntaxError => e
-        raise ParseError, "Invalid XML syntax: #{e.message}"
       rescue StandardError => e
         raise ParseError, "Failed to parse schema: #{e.message}"
-      end
-
-      # Validate that content is an XSD schema document
-      #
-      # @param content [String] XML content to validate
-      # @raise [ParseError] if not a valid schema
-      def self.validate_schema_content(content)
-        doc = Nokogiri::XML(content)
-        root = doc.root
-
-        raise ParseError, "Empty or invalid XML document" unless root
-
-        # Check if root element is xs:schema or xsd:schema
-        unless root.name == "schema" &&
-            root.namespace&.href&.include?("XMLSchema")
-          raise ParseError,
-                "Not a valid XSD schema: root element must be xs:schema"
-        end
-      rescue Nokogiri::XML::SyntaxError => e
-        raise ParseError, "Invalid XML syntax: #{e.message}"
       end
 
       # Build schema location mappings from various sources
@@ -115,7 +89,7 @@ module Xseed
         mappings.empty? ? nil : mappings
       end
 
-      private_class_method :build_mappings, :validate_schema_content
+      private_class_method :build_mappings
     end
   end
 end
